@@ -1,0 +1,14 @@
+{
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
+    "C_Cpp.errorSquiggles": "Enabled",
+    "clangd.arguments": [
+        "--query-driver=C:/Users/matteo.sacanna.RELOAD/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-*"
+    ],
+    "files.associations": {
+        "*.h": "c",
+        "*.hpp": "cpp",
+        "*.cpp": "cpp",
+        "c_cpp_properties.json": "jsonc"
+    }
+}
+
