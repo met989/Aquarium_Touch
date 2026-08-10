@@ -653,7 +653,8 @@ void AquariumUI::drawSubScreenRelay() {
   // Button 2: Inverti Logica High/Low (X: 10, Y: 178, W: 300, H: 44)
   drawTouchButton(10, 178, 300, 44, inv ? langManager.getText("BTN_RESTORE_HIGH", "RESTORE ACTIVE HIGH LOGIC") : langManager.getText("BTN_INVERT_LOW", "INVERT LOGIC (ACTIVE LOW)"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
 }
-void AquariumUI::drawWifiKeyboard() {
+
+void AquariumUI::drawWifiKeyboard() {
   // 1. Top Header: Consistent Enlarged Back Button + Selected SSID
   drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_NETWORK", "< NET"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
@@ -749,14 +750,14 @@ void AquariumUI::drawSubScreenWifi() {
   drawGlassCard(6, 38, 308, 44, statusCol);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_STATUS", "STATUS:"), 14, 42, 1);
+  GFX->drawString(langManager.getText("LABEL_STATUS", "STATUS:"), 14, 42, 2);
   GFX->setTextColor(statusCol, COLOR_CARD_BG);
-  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 58, 42, 1);
+  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 58, 42, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString("IP:", 160, 42, 1);
+  GFX->drawString("IP:", 160, 42, 2);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString(aquarium.getWifiIP().c_str(), 180, 42, 1);
+  GFX->drawString(aquarium.getWifiIP().c_str(), 180, 42, 2);
 
   // Scan Button [ SCANSIONE RETI WI-FI ] (Shifted down Y: 90, Height: 38)
   drawTouchButton(6, 90, 308, 38, langManager.getText("BTN_SCAN", "SCAN WI-FI NETWORKS"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
@@ -1374,6 +1375,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           if (touchX >= 30 && touchX <= 140) {
             if (m_resetStep == 0) {
               m_resetStep = 1;
+              m_settingsNeedsRedraw = true;
             } else {
               GFX->fillScreen(COLOR_OCEAN_DEPTH);
               GFX->setTextColor(COLOR_CORAL_RED);
@@ -1394,6 +1396,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           else if (touchX >= 180 && touchX <= 290) {
             m_settingsSubScreen = 0;
             m_resetStep = 0;
+            m_settingsNeedsRedraw = true;
           }
         }
       }
