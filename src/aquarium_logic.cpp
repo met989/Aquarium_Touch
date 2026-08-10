@@ -47,16 +47,16 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   saveConfigSD();
 }
 
-
-
 void AquariumLogic::disconnectWifi() {
   WiFi.disconnect(true);
   m_wifiScanStatus = langManager.getText("MSG_DISCONNECTED", "DISCONNECTED");
 }
 
 void AquariumLogic::startAsyncWifiScan() {
+  if (m_wifiScanning) return;
   m_wifiScanStatus = langManager.getText("MSG_SCANNING_BG", "Scanning...");
   m_wifiScanning = true;
+  WiFi.scanDelete(); // Ensure old results are cleared
   WiFi.scanNetworks(true, true);
 }
 
@@ -64,15 +64,12 @@ void AquariumLogic::scanWifi() {
   startAsyncWifiScan();
 }
 
-
 WifiNetworkItem AquariumLogic::getWifiNetwork(int idx) const {
   if (idx >= 0 && idx < m_wifiNetworkCount) {
     return m_scannedNetworks[idx];
   }
   return { "", 0, false };
 }
-
-
 
 void AquariumLogic::init() {
   pinMode(LIGHT_RELAY_PIN, OUTPUT);
@@ -126,6 +123,7 @@ void AquariumLogic::update() {
     if (n == WIFI_SCAN_FAILED) {
       m_wifiScanStatus = "Scan Failed";
       m_wifiScanning = false;
+      m_wifiScanCounter++;
     } else if (n >= 0) {
       m_wifiNetworkCount = (n > 12) ? 12 : n;
       if (n == 0) {
@@ -140,6 +138,7 @@ void AquariumLogic::update() {
       }
       WiFi.scanDelete();
       m_wifiScanning = false;
+      m_wifiScanCounter++;
     }
   }
 }

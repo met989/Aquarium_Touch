@@ -88,7 +88,6 @@ private:
   int m_wifiSelectedNet = -1;
   int m_wifiListPage = 0;
   bool m_wifiShowKeyboard = false;
-  bool m_pendingWifiScan = false;
   String m_wifiSelectedSSID = "";
   String m_wifiTypedPassword = "";
   bool m_wifiHidePassword = true;
@@ -105,7 +104,7 @@ private:
   float m_wavePhase = 0.0f;
   uint32_t m_lastAnimTime = 0;
   uint32_t m_lastTouchTime = 0;
-  bool m_lastWifiScanState = false;
+  uint8_t m_lastWifiScanCounter = 0;
 
   // Temperature Interpolation for Smooth Needle
   float m_animatedTemp = 25.4f;

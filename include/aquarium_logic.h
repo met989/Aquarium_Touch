@@ -68,6 +68,7 @@ public:
   int getWifiNetworkCount() const { return m_wifiNetworkCount; }
   WifiNetworkItem getWifiNetwork(int idx) const;
   String getWifiScanStatus() const { return m_wifiScanStatus; }
+  uint8_t getWifiScanCounter() const { return m_wifiScanCounter; }
 
 
 
@@ -119,6 +120,7 @@ private:
   String m_wifiScanStatus = "Premi Scansiona";
 
   bool m_wifiScanning = false;
+  uint8_t m_wifiScanCounter = 0;
   int m_wifiNetworkCount = 0;
   WifiNetworkItem m_scannedNetworks[12];
 };

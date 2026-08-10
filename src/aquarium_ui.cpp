@@ -118,9 +118,9 @@ void AquariumUI::updateAnimations() {
 void AquariumUI::update() {
   aquarium.update();
 
-  bool currentWifiScanState = aquarium.isWifiScanning();
-  if (m_lastWifiScanState != currentWifiScanState) {
-    m_lastWifiScanState = currentWifiScanState;
+  uint8_t currentCounter = aquarium.getWifiScanCounter();
+  if (m_lastWifiScanCounter != currentCounter) {
+    m_lastWifiScanCounter = currentCounter;
     if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 4) {
       m_settingsNeedsRedraw = true;
     }
@@ -754,17 +754,13 @@ void AquariumUI::drawSubScreenWifi() {
   drawTouchButton(6, 90, 308, 38, langManager.getText("BTN_SCAN", "SCAN WI-FI NETWORKS"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
   // Scanned Networks List (Shifted down Y: 136..234)
-  if (m_pendingWifiScan || aquarium.isWifiScanning()) {
+  if (aquarium.isWifiScanning()) {
     drawGlassCard(6, 136, 308, 94, COLOR_CYAN_GLOW);
     GFX->setTextDatum(MC_DATUM);
     GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
     GFX->drawString(langManager.getText("MSG_SCANNING", "PLEASE WAIT... Scanning networks"), 160, 176, 2);
     GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
     GFX->drawString(langManager.getText("MSG_SEARCHING_SIGNALS", "Searching Wi-Fi signals..."), 160, 204, 1);
-
-    if (m_pendingWifiScan) {
-      m_pendingWifiScan = false;
-    }
     return;
   }
 
@@ -1264,7 +1260,6 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         // WiFi Main Screen Touches (Updated for enlarged layout: Scan Y: 90..128)
         // Scan Button (sy: 90..128)
         if (sy >= 90 && sy <= 128) {
-          m_pendingWifiScan = true;
           m_wifiListPage = 0;
           aquarium.startAsyncWifiScan();
           m_settingsNeedsRedraw = true;
