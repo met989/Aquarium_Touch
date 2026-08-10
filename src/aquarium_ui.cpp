@@ -118,6 +118,14 @@ void AquariumUI::updateAnimations() {
 void AquariumUI::update() {
   aquarium.update();
 
+  bool currentWifiScanState = aquarium.isWifiScanning();
+  if (m_lastWifiScanState != currentWifiScanState) {
+    m_lastWifiScanState = currentWifiScanState;
+    if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 4) {
+      m_settingsNeedsRedraw = true;
+    }
+  }
+
   // 1. Update Animations (skips calculations if on SETTINGS)
   updateAnimations();
 
@@ -1256,6 +1264,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           m_pendingWifiScan = true;
           m_wifiListPage = 0;
           aquarium.startAsyncWifiScan();
+          m_settingsNeedsRedraw = true;
           return;
         }
 

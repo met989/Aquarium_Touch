@@ -105,6 +105,7 @@ private:
   float m_wavePhase = 0.0f;
   uint32_t m_lastAnimTime = 0;
   uint32_t m_lastTouchTime = 0;
+  bool m_lastWifiScanState = false;
 
   // Temperature Interpolation for Smooth Needle
   float m_animatedTemp = 25.4f;
