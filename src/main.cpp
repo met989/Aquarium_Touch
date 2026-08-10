@@ -8,7 +8,7 @@
 #include <XPT2046_Touchscreen.h>
 #include <esp_system.h>
 #include <vector>
-
+#include <AnimatedGIF.h>
 TFT_eSPI tft = TFT_eSPI();
 
 SPIClass *touchSPI = nullptr;
@@ -650,7 +650,6 @@ void drawSummary(const char *stateMsg) {
 #include "aquarium_logic.h"
 #include "aquarium_ui.h"
 #include "language_manager.h"
-#include <AnimatedGIF.h>
 
 AnimatedGIF gif;
 int gifOffsetX = 0;
