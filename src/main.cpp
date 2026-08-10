@@ -710,18 +710,30 @@ void GIFDraw(GIFDRAW *pDraw) {
 
   s = pDraw->pPixels;
   if (pDraw->ucHasTransparency) {
-    uint8_t *pEnd, c, ucTransparent = pDraw->ucTransparent;
-    pEnd = s + iWidth;
-    x = 0;
-    while (s < pEnd) {
+    uint8_t c, ucTransparent = pDraw->ucTransparent;
+    int x = 0;
+    int iCount = 0;
+    int xStart = 0;
+    
+    tft.setSwapBytes(true);
+    while (x < iWidth) {
       c = *s++;
       if (c != ucTransparent) {
-        tft.drawPixel(pDraw->iX + gifOffsetX + x, y, usPalette[c]);
+        if (iCount == 0) xStart = x;
+        usTemp[iCount++] = usPalette[c];
+      } else {
+        if (iCount > 0) {
+          tft.pushImage(pDraw->iX + gifOffsetX + xStart, y, iCount, 1, usTemp);
+          iCount = 0;
+        }
       }
       x++;
     }
+    if (iCount > 0) {
+      tft.pushImage(pDraw->iX + gifOffsetX + xStart, y, iCount, 1, usTemp);
+    }
+    tft.setSwapBytes(false);
   } else {
-    s = pDraw->pPixels;
     for (x = 0; x < iWidth; x++) usTemp[x] = usPalette[*s++];
     tft.setSwapBytes(true);
     tft.pushImage(pDraw->iX + gifOffsetX, y, iWidth, 1, usTemp);
