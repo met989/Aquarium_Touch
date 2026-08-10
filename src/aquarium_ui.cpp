@@ -1129,10 +1129,12 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         // Date Format Toggle Button (X: 10..310, sy: 104..148)
         if (touchX >= 10 && touchX <= 310 && sy >= 104 && sy <= 148) {
           aquarium.setDateFormat((cfg.dateFormat + 1) % 3);
+          m_settingsNeedsRedraw = true;
         }
         // NTP Sync Button (X: 10..155, sy: 164..216)
         else if (touchX >= 10 && touchX <= 155 && sy >= 164 && sy <= 216) {
           aquarium.syncNTP();
+          m_settingsNeedsRedraw = true;
         }
         // Timezone -1H (X: 165..230, sy: 164..216)
         else if (touchX >= 165 && touchX <= 230 && sy >= 164 && sy <= 216) {
@@ -1141,6 +1143,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           extern bool writeWholeConfigFileSafe();
           writeWholeConfigFileSafe();
           aquarium.syncNTP();
+          m_settingsNeedsRedraw = true;
         }
         // Timezone +1H (X: 240..310, sy: 164..216)
         else if (touchX >= 240 && touchX <= 310 && sy >= 164 && sy <= 216) {
@@ -1149,6 +1152,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           extern bool writeWholeConfigFileSafe();
           writeWholeConfigFileSafe();
           aquarium.syncNTP();
+          m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 2) {
         // Sub 2: Soglie Temperatura Target (Minima & Massima Ottimale - Enlarged layout)
@@ -1158,6 +1162,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           if (touchX >= 174 && touchX <= 214) aquarium.setTargetTemp(cfg.targetTempMin - 0.1f, cfg.targetTempMax);
           if (touchX >= 218 && touchX <= 258) aquarium.setTargetTemp(cfg.targetTempMin + 0.1f, cfg.targetTempMax);
           if (touchX >= 262 && touchX <= 302) aquarium.setTargetTemp(cfg.targetTempMin + 1.0f, cfg.targetTempMax);
+          m_settingsNeedsRedraw = true;
         }
         // Massima Ottimale Buttons (sy: 146..198)
         else if (sy >= 146 && sy <= 198) {
@@ -1165,16 +1170,19 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           if (touchX >= 174 && touchX <= 214) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax - 0.1f);
           if (touchX >= 218 && touchX <= 258) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax + 0.1f);
           if (touchX >= 262 && touchX <= 302) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax + 1.0f);
+          m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 3) {
         // Sub 3: Stato Relè (Enlarged layout)
         // Button 1: Commuta Relè Adesso (X: 10..310, sy: 122..166)
         if (touchX >= 10 && touchX <= 310 && sy >= 122 && sy <= 166) {
           aquarium.toggleLight();
+          m_settingsNeedsRedraw = true;
         }
         // Button 2: Inverti Logica High/Low (X: 10..310, sy: 178..222)
         if (touchX >= 10 && touchX <= 310 && sy >= 178 && sy <= 222) {
           aquarium.toggleRelayInverted();
+          m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 4) {
         // Sub 4: WiFi Management & Touch Keyboard Input
@@ -1300,11 +1308,13 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           if (touchX >= 16 && touchX <= 86) {
             if (m_screensaverIdx > 0) m_screensaverIdx--;
             aquarium.setScreensaverTime(SS_TIMES[m_screensaverIdx]);
+            m_settingsNeedsRedraw = true;
           }
           // ">" Next button (x: 234..304)
           else if (touchX >= 234 && touchX <= 304) {
             if (m_screensaverIdx < SS_COUNT - 1) m_screensaverIdx++;
             aquarium.setScreensaverTime(SS_TIMES[m_screensaverIdx]);
+            m_settingsNeedsRedraw = true;
           }
         }
       } else if (m_settingsSubScreen == 8) {
