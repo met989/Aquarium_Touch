@@ -364,12 +364,12 @@ void AquariumUI::drawDashboardTab() {
   GFX->setTextDatum(MC_DATUM);
   if (lightOn) {
     int animRay = (int)(sinf(m_wavePhase * 2.0f) * 2.0f);
-    GFX->fillCircle(206, 78, 8 + animRay, COLOR_GOLD_ACCENT);
+    GFX->fillCircle(196, 88, 8 + animRay, COLOR_GOLD_ACCENT);
     GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
     GFX->drawString(langManager.getText("MSG_LIGHT_ON", "ON"), 258, 90, 2);
   } else {
-    GFX->drawCircle(206, 78, 8, COLOR_MOON_BLUE);
-    GFX->fillCircle(204, 78, 6, COLOR_CARD_BG);
+    GFX->drawCircle(196, 88, 8, COLOR_MOON_BLUE);
+    GFX->fillCircle(194, 88, 6, COLOR_CARD_BG);
     GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
     GFX->drawString(langManager.getText("MSG_LIGHT_OFF", "OFF"), 258, 90, 2);
   }
