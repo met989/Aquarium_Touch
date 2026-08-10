@@ -120,7 +120,7 @@ static const uint32_t BOOT_HOLD_MS = 3000;
 #define UI_SPRITE_WIDTH 320  // Full screen width in pixels
 #define UI_SPRITE_HEIGHT 172 // Main content height in pixels (110 KB heap safe)
 #define UI_SPRITE_Y_OFFSET                                                     \
-  6 // Top Y position of main content sprite (tiny 4px top margin)
+  4 // Top Y position of main content sprite (tiny 4px top margin)
 #define UI_NAVBAR_Y 190 // Top Y position of bottom navigation bar
 #define UI_NAVBAR_HEIGHT                                                       \
   50 // Height of bottom navigation bar in pixels (reduced ~25%)

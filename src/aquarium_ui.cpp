@@ -359,19 +359,19 @@ void AquariumUI::drawDashboardTab() {
 
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("TITLE_LIGHT_CONTROL", "AQUARIUM LIGHT"), 188, 64, 1);
+  GFX->drawString(langManager.getText("TITLE_LIGHT_CONTROL", "LIGHT"), 240, 64, 1);
 
   GFX->setTextDatum(MC_DATUM);
   if (lightOn) {
     int animRay = (int)(sinf(m_wavePhase * 2.0f) * 2.0f);
-    GFX->fillCircle(206, 92, 8 + animRay, COLOR_GOLD_ACCENT);
+    GFX->fillCircle(206, 78, 8 + animRay, COLOR_GOLD_ACCENT);
     GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_LIGHT_ON", "ON"), 258, 92, 2);
+    GFX->drawString(langManager.getText("MSG_LIGHT_ON", "ON"), 258, 90, 2);
   } else {
-    GFX->drawCircle(206, 92, 8, COLOR_MOON_BLUE);
-    GFX->fillCircle(204, 90, 6, COLOR_CARD_BG);
+    GFX->drawCircle(206, 78, 8, COLOR_MOON_BLUE);
+    GFX->fillCircle(204, 78, 6, COLOR_CARD_BG);
     GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_LIGHT_OFF", "OFF"), 258, 92, 2);
+    GFX->drawString(langManager.getText("MSG_LIGHT_OFF", "OFF"), 258, 90, 2);
   }
 
   // Right Bottom: Min/Max Stats Card (X: 180, Y: 116, W: 130, H: 50)

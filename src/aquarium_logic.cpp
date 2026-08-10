@@ -101,15 +101,15 @@ void AquariumLogic::init() {
 void AquariumLogic::update() {
   uint32_t now = millis();
 
-  // Automatic NTP Sync when Wi-Fi is connected (on connect & every 30 minutes)
-  static bool wasConnected = false;
+  // Automatic NTP Sync when Wi-Fi is connected (on first connect & every 24 hours)
+  static bool hasSynced = false;
   static uint32_t lastNtpSync = 0;
   bool isConn = (WiFi.status() == WL_CONNECTED);
-  if (isConn && (!wasConnected || (now - lastNtpSync >= 1800000))) {
+  if (isConn && (!hasSynced || (now - lastNtpSync >= 86400000))) {
     lastNtpSync = now;
+    hasSynced = true;
     syncNTP();
   }
-  wasConnected = isConn;
 
   // Clock Ticking (1s increment)
   if (now - m_lastTimeUpdate >= 1000) {
