@@ -1024,7 +1024,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
   m_lastTouchTime = now;
 
   // 1. Navigation Bar Touch (Y >= UI_NAVBAR_Y)
-  if (touchY >= UI_NAVBAR_Y) {
+  // ONLY intercept if the Navbar is actually drawn (not hidden by a settings subscreen)
+  if (touchY >= UI_NAVBAR_Y && !(m_activeTab == TAB_SETTINGS && m_settingsSubScreen > 0)) {
     if (m_activeTab == TAB_SETTINGS) {
         if (m_settingsSubScreen == 0) { // Main settings menu
               if (touchX <= 160) {
