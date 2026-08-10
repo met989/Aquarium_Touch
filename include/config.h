@@ -91,7 +91,7 @@
 // ------------------------------------------------------------------------------
 // 7. System Constants & File Paths
 // ------------------------------------------------------------------------------
-#define AQUARIUM_OS_VERSION "1.0"
+#define AQUARIUM_OS_VERSION "0.5-10082026"
 
 static const uint32_t SERIAL_BAUD = 115200;
 static const char *CONFIG_PATH = "/config.cfg";
@@ -120,7 +120,7 @@ static const uint32_t BOOT_HOLD_MS = 3000;
 #define UI_SPRITE_WIDTH 320  // Full screen width in pixels
 #define UI_SPRITE_HEIGHT 172 // Main content height in pixels (110 KB heap safe)
 #define UI_SPRITE_Y_OFFSET                                                     \
-  4 // Top Y position of main content sprite (tiny 4px top margin)
+  6 // Top Y position of main content sprite (tiny 4px top margin)
 #define UI_NAVBAR_Y 190 // Top Y position of bottom navigation bar
 #define UI_NAVBAR_HEIGHT                                                       \
   50 // Height of bottom navigation bar in pixels (reduced ~25%)
@@ -128,7 +128,7 @@ static const uint32_t BOOT_HOLD_MS = 3000;
 #define UI_ANIM_UPDATE_INTERVAL_MS (1000 / UI_DASHBOARD_ANIM_FPS)
 #define UI_STATIC_REFRESH_MS 200 // Refresh interval for static screens
 #define UI_BUBBLE_COUNT 14       // Number of background water bubbles
-#define UI_FISH_COUNT 10         // Number of swimming fish
+#define UI_FISH_COUNT 12         // Number of swimming fish
 #define UI_TOUCH_DEBOUNCE_MS 250 // Touch debounce in milliseconds
 // ------------------------------------------------------------------------------
 // 9. Runtime Configuration Structs (shared between main.cpp and aquarium_server.cpp)

@@ -49,7 +49,7 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   } else {
     WiFi.begin(ssid.c_str());
   }
-  m_wifiScanStatus = String(langManager.getText("MSG_CONNECTING", "Connecting to ")) + ssid + "...";
+  m_wifiScanStatus = String(langManager.getText("MSG_CONNECTING ", "Connecting to ")) + ssid + "...";
   m_wifiConnectState = WIFI_CONN_CONNECTING;
   m_wifiConnectStartTime = millis();
   saveConfigSD();

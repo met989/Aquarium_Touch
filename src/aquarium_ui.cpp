@@ -900,7 +900,7 @@ void AquariumUI::drawSubScreenVersion() {
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
   GFX->drawString(langManager.getText("LABEL_SYS_NAME", "FIRMWARE:"), 20, 56, 2);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString("AQUARIUM MASTER CONTROLLER", 105, 56, 2);
+  GFX->drawString("AQUARIUM OS", 105, 56, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
   GFX->drawString(langManager.getText("LABEL_OS_VER", "VERSION:"), 20, 90, 2);
@@ -915,7 +915,7 @@ void AquariumUI::drawSubScreenVersion() {
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
   GFX->drawString(langManager.getText("LABEL_HARDWARE", "HARDWARE:"), 20, 164, 2);
   GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-  GFX->drawString("ESP32-DEV 240MHz (4MB Flash)", 105, 164, 2);
+  GFX->drawString("ESP32-DEV 240MHz 4MB", 105, 164, 2);
 }
 
 void AquariumUI::drawSubScreenEnergySaving() {
