@@ -481,17 +481,50 @@ bool readTouchPointStable(int &rx, int &ry) {
   return true;
 }
 
-void drawCross(int x, int y, uint16_t color) {
-  tft.drawLine(x - 10, y, x + 10, y, color);
-  tft.drawLine(x, y - 10, x, y + 10, color);
-  tft.drawCircle(x, y, 14, color);
+void drawCalibrationArrow(int corner, uint16_t color) {
+  int base[7][2] = {
+    {4, 4},
+    {4, 34},
+    {14, 24},
+    {34, 44},
+    {44, 34},
+    {24, 14},
+    {34, 4}
+  };
+  
+  int pts[7][2];
+  for (int i = 0; i < 7; i++) {
+    int x = base[i][0];
+    int y = base[i][1];
+    
+    if (corner == 1 || corner == 3) {
+      x = physW - x;
+    }
+    if (corner == 2 || corner == 3) {
+      y = physH - y;
+    }
+    
+    pts[i][0] = x;
+    pts[i][1] = y;
+  }
+  
+  for (int dx = -2; dx <= 2; dx++) {
+    for (int dy = -2; dy <= 2; dy++) {
+      if (dx*dx + dy*dy <= 5) { // brush radius ~2.2 for thick lines
+        for (int i = 0; i < 7; i++) {
+          int next = (i + 1) % 7;
+          tft.drawLine(pts[i][0] + dx, pts[i][1] + dy, pts[next][0] + dx, pts[next][1] + dy, color);
+        }
+      }
+    }
+  }
 }
 
 bool calibrateTouchCurrentRotation() {
   int mode = cfg.screenMode;
   if (mode < 0 || mode > 3)
     mode = 3;
-  int margin = 28;
+  int margin = 20;
   int ptsX[4] = {margin, physW - margin, margin, physW - margin};
   int ptsY[4] = {margin, margin, physH - margin, physH - margin};
   long rawX[4], rawY[4];
@@ -506,7 +539,7 @@ bool calibrateTouchCurrentRotation() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("CALIBRATION TOUCH", physW / 2, 18, 2);
     tft.drawString((String(i + 1) + "/4").c_str(), physW / 2, 38, 2);
-    drawCross(ptsX[i], ptsY[i], TFT_YELLOW);
+    drawCalibrationArrow(i, TFT_YELLOW);
 
     while (touch.touched())
       delay(10);
