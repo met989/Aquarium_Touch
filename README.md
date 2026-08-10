@@ -67,7 +67,14 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 
 ## 🛠 Specifiche Hardware & Pinout
 
-Il progetto è ottimizzato per l'utilizzo della scheda **ESP32-2432S028 (2.8" All-in-One)** ([acquistabile qui su AliExpress](https://it.aliexpress.com/item/1005005262421075.html)). Tutte le definizioni dei pin e dei parametri hardware sono accentrate in `include/config.h` (**Single Source of Truth**).
+Il progetto è ottimizzato per l'utilizzo della scheda **ESP32-2432S028 (2.8" All-in-One)** ([acquistabile qui su AliExpress](https://it.aliexpress.com/item/1005005262421075.html)). 
+
+![Schema Pinout ESP32-2432S028](https://macsbug.wordpress.com/wp-content/uploads/2022/08/esp32_2432s028_pcb_580-min.png)
+
+> [!NOTE]
+> La pagina indicata illustra nel dettaglio tutto l'hardware. Esistono 3 varianti fisiche di questa scheda: **l'ultima versione** (la più aggiornata e consigliata) è riconoscibile dalla presenza simultanea di entrambe le porte **USB-C e Micro USB**.
+
+Tutte le definizioni dei pin e dei parametri hardware sono accentrate in `include/config.h` (**Single Source of Truth**).
 
 | Componente | Periferica | Pin ESP32 | Note / Descrizione |
 | :--- | :--- | :--- | :--- |
@@ -99,6 +106,9 @@ Il progetto è ottimizzato per l'utilizzo della scheda **ESP32-2432S028 (2.8" Al
 ## 🎨 Interfaccia Utente & Touch
 
 L'interfaccia utente (UI) è sviluppata su libreria `TFT_eSPI` sfruttando un buffer **TFT_eSprite** a tutta larghezza (320x172 px) per eliminare qualsiasi sfarfallamento.
+
+> [!TIP]
+> **Modalità Recovery (Ricalibrazione Touch):** Se il touch screen risulta impreciso o sfasato, puoi ricalibrarlo facilmente. Premi una volta il tasto **Reset** della scheda e mantieni premuto il tasto **Boot** per **3 secondi**. Il sistema entrerà in modalità Recovery e ti guiderà nella ricalibrazione guidata a schermo.
 
 ### Tab di Navigazione
 1. **Dashboard:** Mostra l'indicatore analogico a lancetta della temperatura, lo stato della sonda, le temperature min/max registrate, la data/ora attuale e lo stato dell'illuminazione con animazione marina attiva.
@@ -176,7 +186,7 @@ Aquarium_Touch/
 │   ├── aquarium_server.h       # Definizione Web Server HTTP & API REST
 │   ├── language_manager.h      # Gestore del dizionario di localizzazione i18n
 │   ├── embedded_languages.h    # Header autogenerato con lingue integrate nella Flash
-│   └── lv_conf.h               # Configurazione LVGL (ove applicabile)
+│   └── lv_conf.h               # Configurazione LVGL (eredità di progetto, si consiglia LovyanGFX per questa scheda)
 ├── src/
 │   ├── main.cpp                # Setup, Loop principale, gestione Boot GIF e calibrazione Touch
 │   ├── aquarium_logic.cpp      # Logica di business, schedulazione, sensore DS18B20, gestione SD
@@ -214,6 +224,9 @@ Le configurazioni del sistema seguono una rigorosa gerarchia:
 - `OneWire`
 - `DallasTemperature` (Arduino-Temperature-Control-Library)
 - `bitbank2/AnimatedGIF @ ^1.4.7`
+
+> [!TIP]
+> **Libreria Grafica Consigliata:** Sebbene il progetto utilizzi attualmente `TFT_eSPI` (e presenti un file `lv_conf.h` per esperimenti con LVGL), la libreria grafica più consigliata e performante per l'hardware specifico **ESP32-2432S028** è **LovyanGFX**. Nelle future iterazioni del firmware, il motore di rendering potrebbe essere migrato a LovyanGFX per sfruttarne appieno le potenzialità hardware.
 
 ### Comandi PlatformIO
 - **Compilazione firmware:**
