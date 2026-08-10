@@ -1199,12 +1199,14 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           // Top Left Back Button [ < NET ] (X: 0..94, sy: 0..36)
           if (touchX <= 94 && sy <= 36) {
             m_wifiShowKeyboard = false;
+            m_settingsNeedsRedraw = true;
             return;
           }
 
           // Mask Toggle Button [ MOSTRA / NASCONDI ] (X: 260..318, sy: 38..68)
           if (touchX >= 260 && sy >= 38 && sy <= 68) {
             m_wifiHidePassword = !m_wifiHidePassword;
+            m_settingsNeedsRedraw = true;
             return;
           }
 
@@ -1255,6 +1257,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               m_wifiShowKeyboard = false;
             }
           }
+          m_settingsNeedsRedraw = true;
           return;
         }
 
@@ -1278,6 +1281,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           } else if (sy >= 184 && sy <= 228) {
             if (m_wifiListPage < totalPages - 1) m_wifiListPage++;
           }
+          m_settingsNeedsRedraw = true;
           return;
         }
 
@@ -1295,6 +1299,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               } else {
                 m_wifiShowKeyboard = true;
               }
+              m_settingsNeedsRedraw = true;
             }
           }
         }
