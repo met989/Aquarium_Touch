@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include "config.h"
-#include "language_manager.h"
 
 enum WifiConnectState {
   WIFI_CONN_IDLE,
