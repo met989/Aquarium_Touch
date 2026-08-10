@@ -39,6 +39,9 @@ void AquariumUI::init(TFT_eSPI* tft) {
 void AquariumUI::setTab(UiTab tab) {
   if (m_activeTab != tab) {
     m_activeTab = tab;
+    m_settingsSubScreen = 0;      // Reset subscreen when tab changes
+    m_settingsMenuPage = 0;        // Reset settings menu page when tab changes
+    m_settingsNeedsRedraw = true;  // Force settings redraw
     drawNavBar(true);
   }
 }
@@ -134,9 +137,17 @@ void AquariumUI::update() {
       case TAB_SETTINGS:  
         if (m_settingsNeedsRedraw) {
           m_settingsNeedsRedraw = false;
-          m_tft->fillRect(0, 0, 320, UI_NAVBAR_Y, COLOR_BG_OCEAN);
-          m_tft->fillRect(0, 120, 320, UI_NAVBAR_Y - 120, COLOR_OCEAN_DEPTH);
+          if (m_settingsSubScreen > 0) {
+            m_tft->fillRect(0, 0, 320, 240, COLOR_BG_OCEAN);
+            m_tft->fillRect(0, 160, 320, 80, COLOR_OCEAN_DEPTH);
+          } else {
+            m_tft->fillRect(0, 0, 320, UI_NAVBAR_Y, COLOR_BG_OCEAN);
+            m_tft->fillRect(0, 120, 320, UI_NAVBAR_Y - 120, COLOR_OCEAN_DEPTH);
+          }
           drawSettingsTab(); 
+          if (m_settingsSubScreen == 0) {
+            drawNavBar(true);
+          }
         }
         break;
     }
@@ -226,6 +237,7 @@ void AquariumUI::drawSwimmingFish() {
 
 void AquariumUI::drawNavBar(bool force) {
   if (m_activeTab == TAB_SETTINGS) {
+      if (m_settingsSubScreen > 0) return; // Navbar is hidden in subscreens
       if (!force && m_lastDrawTab == (int)m_activeTab) return;
       m_lastDrawTab = (int)m_activeTab;
 
@@ -240,7 +252,7 @@ void AquariumUI::drawNavBar(bool force) {
           m_tft->drawRoundRect(10, UI_NAVBAR_Y + 5, 140, 40, 8, COLOR_CYAN_GLOW);
           m_tft->setTextColor(TFT_WHITE);
           m_tft->setTextDatum(MC_DATUM);
-          m_tft->drawString("INDIETRO", 80, UI_NAVBAR_Y + 25, 2);
+          m_tft->drawString(langManager.getText("BTN_BACK", "INDIETRO"), 80, UI_NAVBAR_Y + 25, 2);
 
           // Next Page Button
           m_tft->fillRoundRect(170, UI_NAVBAR_Y + 5, 140, 40, 8, COLOR_CARD_BORDER);
@@ -461,14 +473,14 @@ void AquariumUI::drawSettingsMenu() {
       }
 
       const char* items[] = {
-        langManager.getText("BTN_DATE_TIME", "1. Date & Time"), 
-        langManager.getText("BTN_TEMP", "2. Target Temp"), 
-        langManager.getText("BTN_RELAY", "3. Relay State"), 
-        langManager.getText("BTN_WIFI", "4. Wi-Fi"), 
-        langManager.getText("BTN_SYSINFO", "5. System Info"), 
-        langManager.getText("BTN_LANG", "6. Language"), 
-        langManager.getText("BTN_ENSAVE", "7. Energy Saving"), 
-        langManager.getText("BTN_RESET", "8. Factory Reset")
+        langManager.getText("MENU_DATETIME", "1. Date & Time"), 
+        langManager.getText("MENU_TEMP_TARGET", "2. Target Temp"), 
+        langManager.getText("MENU_RELAY_STATE", "3. Relay State"), 
+        langManager.getText("MENU_WIFI_MGMT", "4. Wi-Fi"), 
+        langManager.getText("MENU_SYS_VERSION", "5. System Info"), 
+        langManager.getText("MENU_LANGUAGE", "6. Language"), 
+        langManager.getText("MENU_ENERGY_SAVING", "7. Energy Saving"), 
+        langManager.getText("MENU_FACTORY_RESET", "8. Factory Reset")
     };
 
       int btnWidth = 145;
@@ -494,18 +506,16 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
     if (sub == 0) {
         drawSettingsMenu();
     } else if (sub == 1) { // Date & Time
-        // Back Button
-        GFX->fillRoundRect(5, 5, 80, 30, 5, TFT_DARKGREY);
-        GFX->setTextColor(TFT_WHITE);
-        GFX->setTextDatum(MC_DATUM);
-        GFX->drawString("< MENU", 45, 20, 2);
+        // Consistent Enlarged Back Button
+        drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
         
-        // Title
+        // Title (Shifted down)
         GFX->setTextColor(COLOR_CYAN_GLOW);
+        GFX->setTextDatum(TC_DATUM);
         String titleStr = String(langManager.getText("TITLE_DATETIME", "DATE & TIME")) + " [ TZ: " + cfg.timezone + " ]";
-        GFX->drawString(titleStr, 200, 20, 2);
+        GFX->drawString(titleStr.c_str(), 190, 10, 2);
 
-        // Date Time Card (Huge)
+        // Date Time Card (Huge - Shifted down)
         int h, m, s;
         aquarium.getTime(h, m, s);
         char clockStr[32], dateStr[16];
@@ -513,13 +523,13 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         aquarium.getFormattedDate(dateStr, sizeof(dateStr));
         String combined = String(dateStr) + " - " + String(clockStr);
         
-        GFX->fillRoundRect(10, 40, 300, 40, 8, COLOR_CYAN_GLOW);
+        GFX->fillRoundRect(10, 48, 300, 40, 8, COLOR_CYAN_GLOW);
         GFX->setTextColor(COLOR_BG_OCEAN);
-        GFX->drawString(combined, 160, 60, 4);
+        GFX->drawString(combined, 160, 68, 4);
         
-        // Date Format Toggle Button
-        GFX->fillRoundRect(10, 90, 300, 35, 8, COLOR_CARD_BORDER);
-        GFX->drawRoundRect(10, 90, 300, 35, 8, COLOR_CYAN_GLOW);
+        // Date Format Toggle Button (Larger: Y: 104, Height: 44)
+        GFX->fillRoundRect(10, 104, 300, 44, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(10, 104, 300, 44, 8, COLOR_CYAN_GLOW);
         GFX->setTextColor(TFT_WHITE);
         
         String fmtLabel = String(langManager.getText("LABEL_DATE_FMT", "DATE FORMAT:")) + " ";
@@ -527,21 +537,21 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         if (acfg.dateFormat == DATE_FORMAT_DDMMYYYY) fmtLabel += "GG/MM/AAAA";
         else if (acfg.dateFormat == DATE_FORMAT_MMDDYYYY) fmtLabel += "MM/GG/AAAA";
         else fmtLabel += "AAAA/MM/GG";
-        GFX->drawString(fmtLabel, 160, 107, 2);
+        GFX->drawString(fmtLabel, 160, 126, 2);
         
-        // NTP Sync Button
-        GFX->fillRoundRect(10, 135, 145, 40, 8, COLOR_CARD_BORDER);
-        GFX->drawRoundRect(10, 135, 145, 40, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("SYNC NTP", 82, 155, 2);
+        // NTP Sync Button (Larger: Y: 164, Height: 52)
+        GFX->fillRoundRect(10, 164, 145, 52, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(10, 164, 145, 52, 8, COLOR_CYAN_GLOW);
+        GFX->drawString("SYNC NTP", 82, 190, 2);
         
-        // Timezone Buttons
-        GFX->fillRoundRect(165, 135, 65, 40, 8, COLOR_CARD_BORDER);
-        GFX->drawRoundRect(165, 135, 65, 40, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("-1H TZ", 197, 155, 2);
+        // Timezone Buttons (Larger: Y: 164, Height: 52)
+        GFX->fillRoundRect(165, 164, 65, 52, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(165, 164, 65, 52, 8, COLOR_CYAN_GLOW);
+        GFX->drawString("-1H TZ", 197, 190, 2);
         
-        GFX->fillRoundRect(240, 135, 70, 40, 8, COLOR_CARD_BORDER);
-        GFX->drawRoundRect(240, 135, 70, 40, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("+1H TZ", 275, 155, 2);
+        GFX->fillRoundRect(240, 164, 70, 52, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(240, 164, 70, 52, 8, COLOR_CYAN_GLOW);
+        GFX->drawString("+1H TZ", 275, 190, 2);
     } else {
         // Altre subscreen
         if (sub == 2) drawSubScreenTempTarget();
@@ -555,91 +565,90 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
 }
 
 void AquariumUI::drawSubScreenTempTarget() {
-  drawTouchButton(6, 2, 74, 24, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_EMERALD_GREEN, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("TITLE_TEMP_TARGET", "OPTIMAL MIN & MAX SETTING"), 190, 6, 2);
+  GFX->drawString(langManager.getText("TITLE_TEMP_TARGET", "OPTIMAL MIN & MAX SETTING"), 190, 10, 2);
 
   const AquariumConfig& cfg = aquarium.getConfig();
 
-  // Card 1: MINIMA OTTIMALE (X: 10, Y: 28, W: 300, H: 66)
-  drawGlassCard(10, 28, 300, 66, COLOR_CYAN_GLOW);
+  // Card 1: MINIMA OTTIMALE (X: 10, Y: 40, W: 300, H: 80)
+  drawGlassCard(10, 40, 300, 80, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_MIN_TARGET", "OPTIMAL MIN:"), 18, 33, 2);
+  GFX->drawString(langManager.getText("LABEL_MIN_TARGET", "OPTIMAL MIN:"), 18, 50, 2);
 
   char minStr[16];
   snprintf(minStr, sizeof(minStr), "%.1f C", cfg.targetTempMin);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
-  GFX->drawString(minStr, 18, 54, 4);
+  GFX->drawString(minStr, 18, 71, 4);
 
-  drawTouchButton(130, 44, 40, 38, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(174, 44, 40, 38, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(218, 44, 40, 38, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(262, 44, 40, 38, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  // Enlarged Buttons (Height: 52, Y: 54)
+  drawTouchButton(130, 54, 40, 52, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 54, 40, 52, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 54, 40, 52, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 54, 40, 52, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
 
-  // Card 2: MASSIMA OTTIMALE (X: 10, Y: 98, W: 300, H: 66)
-  drawGlassCard(10, 98, 300, 66, COLOR_CORAL_RED);
+  // Card 2: MASSIMA OTTIMALE (X: 10, Y: 132, W: 300, H: 80)
+  drawGlassCard(10, 132, 300, 80, COLOR_CORAL_RED);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_MAX_TARGET", "OPTIMAL MAX:"), 18, 103, 2);
+  GFX->drawString(langManager.getText("LABEL_MAX_TARGET", "OPTIMAL MAX:"), 18, 142, 2);
 
   char maxStr[16];
   snprintf(maxStr, sizeof(maxStr), "%.1f C", cfg.targetTempMax);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_CORAL_RED, COLOR_CARD_BG);
-  GFX->drawString(maxStr, 18, 124, 4);
+  GFX->drawString(maxStr, 18, 163, 4);
 
-  drawTouchButton(130, 114, 40, 38, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(174, 114, 40, 38, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(218, 114, 40, 38, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
-  drawTouchButton(262, 114, 40, 38, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  // Enlarged Buttons (Height: 52, Y: 146)
+  drawTouchButton(130, 146, 40, 52, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 146, 40, 52, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 146, 40, 52, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 146, 40, 52, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
 }
 
-
-
 void AquariumUI::drawSubScreenRelay() {
-  drawTouchButton(8, 4, 70, 22, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("TITLE_RELAY_STATE", "LIGHT RELAY STATUS (GPIO 17)"), 190, 6, 2);
+  GFX->drawString(langManager.getText("TITLE_RELAY_STATE", "LIGHT RELAY STATUS (GPIO 17)"), 190, 10, 2);
 
   bool lightOn = aquarium.isLightOn();
   bool inv = aquarium.isRelayInverted();
   uint16_t releCol = lightOn ? COLOR_GOLD_ACCENT : COLOR_TEXT_MUTED;
 
-  // Relay Info Card (X: 10, Y: 28, W: 300, H: 64)
-  drawGlassCard(10, 28, 300, 64, releCol);
+  // Relay Info Card (X: 10, Y: 40, W: 300, H: 70)
+  drawGlassCard(10, 40, 300, 70, releCol);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_PIN_POLARITY", "PIN: GPIO 17 | POLARITY:"), 18, 34, 1);
+  GFX->drawString(langManager.getText("LABEL_PIN_POLARITY", "PIN: GPIO 17 | POLARITY:"), 18, 46, 1);
   GFX->setTextColor(inv ? COLOR_CORAL_RED : COLOR_CYAN_GLOW, COLOR_CARD_BG);
-  GFX->drawString(inv ? langManager.getText("LABEL_ACTIVE_LOW", "ACTIVE LOW (INVERTED)") : langManager.getText("LABEL_ACTIVE_HIGH", "ACTIVE HIGH (NORMAL)"), 165, 34, 1);
+  GFX->drawString(inv ? langManager.getText("LABEL_ACTIVE_LOW", "ACTIVE LOW (INVERTED)") : langManager.getText("LABEL_ACTIVE_HIGH", "ACTIVE HIGH (NORMAL)"), 165, 46, 1);
 
   GFX->setTextDatum(MC_DATUM);
   GFX->setTextColor(releCol, COLOR_CARD_BG);
-  GFX->drawString(lightOn ? langManager.getText("LABEL_RELAY_ACTIVE", "RELAY STATUS: ACTIVE") : langManager.getText("LABEL_RELAY_INACTIVE", "RELAY STATUS: INACTIVE"), 160, 68, 2);
+  GFX->drawString(lightOn ? langManager.getText("LABEL_RELAY_ACTIVE", "RELAY STATUS: ACTIVE") : langManager.getText("LABEL_RELAY_INACTIVE", "RELAY STATUS: INACTIVE"), 160, 83, 2);
 
-  // Button 1: Commuta Relè Adesso (X: 10, Y: 98, W: 300, H: 32)
-  drawTouchButton(10, 98, 300, 32, lightOn ? langManager.getText("BTN_DEACTIVATE_RELAY", "DEACTIVATE RELAY NOW") : langManager.getText("BTN_ACTIVATE_RELAY", "ACTIVATE RELAY NOW"), COLOR_CARD_BG, releCol, releCol);
+  // Button 1: Commuta Relè Adesso (X: 10, Y: 122, W: 300, H: 44)
+  drawTouchButton(10, 122, 300, 44, lightOn ? langManager.getText("BTN_DEACTIVATE_RELAY", "DEACTIVATE RELAY NOW") : langManager.getText("BTN_ACTIVATE_RELAY", "ACTIVATE RELAY NOW"), COLOR_CARD_BG, releCol, releCol);
 
-  // Button 2: Inverti Logica High/Low (X: 10, Y: 134, W: 300, H: 32)
-  drawTouchButton(10, 134, 300, 32, inv ? langManager.getText("BTN_RESTORE_HIGH", "RESTORE ACTIVE HIGH LOGIC") : langManager.getText("BTN_INVERT_LOW", "INVERT LOGIC (ACTIVE LOW)"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
+  // Button 2: Inverti Logica High/Low (X: 10, Y: 178, W: 300, H: 44)
+  drawTouchButton(10, 178, 300, 44, inv ? langManager.getText("BTN_RESTORE_HIGH", "RESTORE ACTIVE HIGH LOGIC") : langManager.getText("BTN_INVERT_LOW", "INVERT LOGIC (ACTIVE LOW)"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
 }
-
-void AquariumUI::drawWifiKeyboard() {
-  // 1. Top Header: Back Button + Selected SSID
-  drawTouchButton(6, 2, 70, 22, langManager.getText("BTN_NETWORK", "< NET"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+void AquariumUI::drawWifiKeyboard() {
+  // 1. Top Header: Consistent Enlarged Back Button + Selected SSID
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_NETWORK", "< NET"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
   String headerStr = "SSID: " + m_wifiSelectedSSID;
   if (headerStr.length() > 18) headerStr = headerStr.substring(0, 18) + "..";
-  GFX->drawString(headerStr.c_str(), 82, 6, 2);
+  GFX->drawString(headerStr.c_str(), 96, 10, 2);
 
-  // 2. Password Display Box & Mask Toggle
-  drawGlassCard(6, 26, 256, 26, COLOR_CYAN_GLOW);
+  // 2. Password Display Box & Mask Toggle (Shifted down: Y: 38, Height: 30)
+  drawGlassCard(6, 38, 256, 30, COLOR_CYAN_GLOW);
 
   GFX->setTextDatum(TL_DATUM);
   String displayPass = "";
@@ -654,12 +663,12 @@ void AquariumUI::drawWifiKeyboard() {
   } else {
     GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
   }
-  GFX->drawString(displayPass.c_str(), 12, 32, 2);
+  GFX->drawString(displayPass.c_str(), 12, 45, 2);
 
-  // Mask Toggle Button
-  drawTouchButton(266, 26, 48, 26, m_wifiHidePassword ? langManager.getText("BTN_SHOW", "SHOW") : langManager.getText("BTN_HIDE", "HIDE"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  // Mask Toggle Button (Shifted down: Y: 38)
+  drawTouchButton(266, 38, 48, 30, m_wifiHidePassword ? langManager.getText("BTN_SHOW", "SHOW") : langManager.getText("BTN_HIDE", "HIDE"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
-  // 3. Keypad Matrix (Y: 54 to 134)
+  // 3. Keypad Matrix (Shifted Y spacing: Y: 72, 108, 144, Height: 32)
   const char* row1_lower[10] = {"q","w","e","r","t","y","u","i","o","p"};
   const char* row1_upper[10] = {"Q","W","E","R","T","Y","U","I","O","P"};
   const char* row1_symb[10]  = {"1","2","3","4","5","6","7","8","9","0"};
@@ -672,37 +681,37 @@ void AquariumUI::drawWifiKeyboard() {
   const char* row3_upper[7]  = {"Z","X","C","V","B","N","M"};
   const char* row3_symb[7]   = {"=",".","_",":","/",";","?"};
 
-  int y1 = 54, y2 = 81, y3 = 108;
+  int y1 = 72, y2 = 108, y3 = 144;
 
   // Row 1 (10 keys)
   for (int i = 0; i < 10; i++) {
     const char* k = (m_kbLayoutMode == 0) ? row1_lower[i] : (m_kbLayoutMode == 1) ? row1_upper[i] : row1_symb[i];
-    drawTouchButton(4 + i * 31, y1, 29, 25, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
+    drawTouchButton(4 + i * 31, y1, 29, 32, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
   }
 
   // Row 2 (9 keys)
   for (int i = 0; i < 9; i++) {
     const char* k = (m_kbLayoutMode == 0) ? row2_lower[i] : (m_kbLayoutMode == 1) ? row2_upper[i] : row2_symb[i];
-    drawTouchButton(19 + i * 31, y2, 29, 25, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
+    drawTouchButton(19 + i * 31, y2, 29, 32, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
   }
 
-  // Row 3: Shift / Mode Key
+  // Row 3: Shift / Mode Key (Shift button enlarged)
   const char* shiftLabel = (m_kbLayoutMode == 0) ? "abc" : (m_kbLayoutMode == 1) ? "ABC" : "123";
-  drawTouchButton(4, y3, 40, 25, shiftLabel, COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(4, y3, 40, 32, shiftLabel, COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
   // Row 3 Middle (7 keys)
   for (int i = 0; i < 7; i++) {
     const char* k = (m_kbLayoutMode == 0) ? row3_lower[i] : (m_kbLayoutMode == 1) ? row3_upper[i] : row3_symb[i];
-    drawTouchButton(48 + i * 30, y3, 28, 25, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
+    drawTouchButton(48 + i * 30, y3, 28, 32, k, COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
   }
 
-  // Delete Backspace Button
-  drawTouchButton(262, y3, 54, 25, langManager.getText("BTN_DEL", "DEL"), COLOR_CARD_BG, COLOR_CORAL_RED, COLOR_CORAL_RED);
+  // Delete Backspace Button (Enlarged)
+  drawTouchButton(262, y3, 54, 32, langManager.getText("BTN_DEL", "DEL"), COLOR_CARD_BG, COLOR_CORAL_RED, COLOR_CORAL_RED);
 
-  // 4. Bottom Control Bar (Y: 138..168)
-  drawTouchButton(4, 138, 65, 28, (m_kbLayoutMode == 2) ? "ABC" : "123", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
-  drawTouchButton(73, 138, 105, 28, langManager.getText("BTN_SPACE", "SPACE"), COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
-  drawTouchButton(182, 138, 134, 28, langManager.getText("BTN_CONNECT", "CONNECT"), COLOR_EMERALD_GREEN, TFT_BLACK, COLOR_EMERALD_GREEN);
+  // 4. Bottom Control Bar (Larger: Y: 184, Height: 44)
+  drawTouchButton(4, 184, 65, 44, (m_kbLayoutMode == 2) ? "ABC" : "123", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(73, 184, 105, 44, langManager.getText("BTN_SPACE", "SPACE"), COLOR_CARD_BG, TFT_WHITE, COLOR_CARD_BORDER);
+  drawTouchButton(182, 184, 134, 44, langManager.getText("BTN_CONNECT", "CONNECT"), COLOR_EMERALD_GREEN, TFT_BLACK, COLOR_EMERALD_GREEN);
 }
 
 
@@ -712,38 +721,38 @@ void AquariumUI::drawSubScreenWifi() {
     return;
   }
 
-  drawTouchButton(6, 2, 74, 24, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_EMERALD_GREEN, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("MENU_WIFI_MGMT", "WI-FI (STATUS/NET)"), 190, 6, 2);
+  GFX->drawString(langManager.getText("MENU_WIFI_MGMT", "WI-FI (STATUS/NET)"), 190, 10, 2);
 
   bool conn = aquarium.isWifiConnected();
   uint16_t statusCol = conn ? COLOR_EMERALD_GREEN : COLOR_CORAL_RED;
 
-  // WiFi Status Card (X: 6, Y: 26, W: 308, H: 44)
-  drawGlassCard(6, 26, 308, 44, statusCol);
+  // WiFi Status Card (Shifted down Y: 38, Height: 44)
+  drawGlassCard(6, 38, 308, 44, statusCol);
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_STATUS", "STATUS:"), 14, 30, 1);
+  GFX->drawString(langManager.getText("LABEL_STATUS", "STATUS:"), 14, 42, 1);
   GFX->setTextColor(statusCol, COLOR_CARD_BG);
-  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 58, 30, 1);
+  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 58, 42, 1);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString("IP:", 160, 30, 1);
+  GFX->drawString("IP:", 160, 42, 1);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString(aquarium.getWifiIP().c_str(), 180, 30, 1);
+  GFX->drawString(aquarium.getWifiIP().c_str(), 180, 42, 1);
 
-  // Scan Button [ SCANSIONE RETI WI-FI ] (X: 14, Y: 46, W: 292, H: 20)
-  drawTouchButton(14, 46, 292, 20, langManager.getText("BTN_SCAN", "SCAN WI-FI NETWORKS"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  // Scan Button [ SCANSIONE RETI WI-FI ] (Shifted down Y: 90, Height: 38)
+  drawTouchButton(6, 90, 308, 38, langManager.getText("BTN_SCAN", "SCAN WI-FI NETWORKS"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
-  // Scanned Networks List (Y: 72..168)
+  // Scanned Networks List (Shifted down Y: 136..234)
   if (m_pendingWifiScan || aquarium.isWifiScanning()) {
-    drawGlassCard(6, 72, 308, 96, COLOR_CYAN_GLOW);
+    drawGlassCard(6, 136, 308, 94, COLOR_CYAN_GLOW);
     GFX->setTextDatum(MC_DATUM);
     GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_SCANNING", "PLEASE WAIT... Scanning networks"), 160, 110, 2);
+    GFX->drawString(langManager.getText("MSG_SCANNING", "PLEASE WAIT... Scanning networks"), 160, 176, 2);
     GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_SEARCHING_SIGNALS", "Searching Wi-Fi signals..."), 160, 134, 1);
+    GFX->drawString(langManager.getText("MSG_SEARCHING_SIGNALS", "Searching Wi-Fi signals..."), 160, 204, 1);
 
     if (m_pendingWifiScan) {
       if (m_tft) {
@@ -758,11 +767,11 @@ void AquariumUI::drawSubScreenWifi() {
 
   int netCount = aquarium.getWifiNetworkCount();
   if (netCount <= 0) {
-    drawGlassCard(6, 72, 308, 96, COLOR_CARD_BORDER);
+    drawGlassCard(6, 136, 308, 94, COLOR_CARD_BORDER);
     GFX->setTextDatum(MC_DATUM);
     GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-    GFX->drawString(aquarium.getWifiScanStatus().c_str(), 160, 110, 2);
-    GFX->drawString(langManager.getText("MSG_PRESS_SCAN", "Press [SCAN WI-FI NETWORKS] above"), 160, 134, 1);
+    GFX->drawString(aquarium.getWifiScanStatus().c_str(), 160, 176, 2);
+    GFX->drawString(langManager.getText("MSG_PRESS_SCAN", "Press [SCAN WI-FI NETWORKS] above"), 160, 204, 1);
     return;
   }
 
@@ -772,70 +781,71 @@ void AquariumUI::drawSubScreenWifi() {
 
   int cardWidth = (totalPages > 1) ? 254 : 308;
 
-  // Display Up to 3 Network Cards
+  // Display Up to 3 Network Cards (Shifted down Y: 136, 172, 208, Height: 32)
   int startIdx = m_wifiListPage * 3;
   for (int i = 0; i < 3; i++) {
     int idx = startIdx + i;
-    int cardY = 72 + i * 32;
+    int cardY = 136 + i * 36;
 
     if (idx < netCount) {
       WifiNetworkItem net = aquarium.getWifiNetwork(idx);
       uint16_t borderCol = net.open ? COLOR_EMERALD_GREEN : COLOR_CYAN_GLOW;
-      drawGlassCard(6, cardY, cardWidth, 30, borderCol);
+      drawGlassCard(6, cardY, cardWidth, 32, borderCol);
 
       GFX->setTextDatum(TL_DATUM);
       GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
       String ssidDisplay = String(idx + 1) + ". " + net.ssid;
       if (ssidDisplay.length() > 16) ssidDisplay = ssidDisplay.substring(0, 16) + "..";
-      GFX->drawString(ssidDisplay.c_str(), 14, cardY + 7, 2);
+      GFX->drawString(ssidDisplay.c_str(), 14, cardY + 8, 2);
 
       GFX->setTextDatum(TR_DATUM);
       GFX->setTextColor(net.open ? COLOR_EMERALD_GREEN : COLOR_CYAN_GLOW, COLOR_CARD_BG);
       String secInfo = net.open ? langManager.getText("MSG_OPEN_NET", "OPEN") : langManager.getText("MSG_PROT_NET", "SECURED");
       secInfo += " (" + String(net.rssi) + "dB)";
-      GFX->drawString(secInfo.c_str(), cardWidth - 6, cardY + 7, 2);
+      GFX->drawString(secInfo.c_str(), cardWidth - 6, cardY + 8, 2);
     }
   }
 
-  // Right Side Pagination Buttons (^ and v) if totalPages > 1
+  // Right Side Pagination Buttons (^ and v) (Shifted down Y: 136, 184, Height: 44)
   if (totalPages > 1) {
     uint16_t upCol = (m_wifiListPage > 0) ? COLOR_CYAN_GLOW : COLOR_CARD_BORDER;
     uint16_t upTextCol = (m_wifiListPage > 0) ? COLOR_GOLD_ACCENT : COLOR_TEXT_MUTED;
-    drawTouchButton(266, 72, 48, 44, "^", COLOR_CARD_BG, upTextCol, upCol);
+    drawTouchButton(266, 136, 48, 44, "^", COLOR_CARD_BG, upTextCol, upCol);
 
     uint16_t downCol = (m_wifiListPage < totalPages - 1) ? COLOR_CYAN_GLOW : COLOR_CARD_BORDER;
     uint16_t downTextCol = (m_wifiListPage < totalPages - 1) ? COLOR_GOLD_ACCENT : COLOR_TEXT_MUTED;
-    drawTouchButton(266, 120, 48, 44, "v", COLOR_CARD_BG, downTextCol, downCol);
+    drawTouchButton(266, 184, 48, 44, "v", COLOR_CARD_BG, downTextCol, downCol);
   }
 }
 
 void AquariumUI::drawSubScreenLanguage() {
-  drawTouchButton(6, 2, 74, 24, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("MENU_LANGUAGE", "SELECT INTERFACE LANGUAGE"), 190, 6, 2);
+  GFX->drawString(langManager.getText("MENU_LANGUAGE", "SELECT INTERFACE LANGUAGE"), 190, 10, 2);
 
   int langCount = langManager.getAvailableLanguageCount();
   String currentFile = langManager.getActiveLanguageFile();
 
+  // Enlarged Language Cards (Height: 38, Spacing: 44, Y starts at 40)
   for (int i = 0; i < 4; i++) {
-    int cardY = 32 + i * 34;
+    int cardY = 40 + i * 44;
     if (i < langCount) {
       LangItem item = langManager.getAvailableLanguage(i);
       bool isSelected = (currentFile == item.filename || currentFile.endsWith(item.filename));
       uint16_t borderCol = isSelected ? COLOR_GOLD_ACCENT : COLOR_CYAN_GLOW;
-      drawGlassCard(6, cardY, 308, 30, borderCol);
+      drawGlassCard(6, cardY, 308, 38, borderCol);
 
       GFX->setTextDatum(TL_DATUM);
       GFX->setTextColor(isSelected ? COLOR_GOLD_ACCENT : TFT_WHITE, COLOR_CARD_BG);
       String label = String(i + 1) + ". " + item.name;
       if (isSelected) label += "  [" + String(langManager.getText("LABEL_ACTIVE_LANG", "ACTIVE")) + "]";
-      GFX->drawString(label.c_str(), 16, cardY + 7, 2);
+      GFX->drawString(label.c_str(), 16, cardY + 11, 2);
 
       if (isSelected) {
         GFX->setTextDatum(TR_DATUM);
         GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-        GFX->drawString("v", 300, cardY + 7, 2);
+        GFX->drawString("v", 300, cardY + 11, 2);
       }
     }
   }
@@ -845,35 +855,35 @@ void AquariumUI::drawSubScreenLanguage() {
 
 
 void AquariumUI::drawSubScreenVersion() {
-
-  drawTouchButton(8, 4, 70, 22, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
+  // Consistent Enlarged Back Button
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("TITLE_SYS_VERSION", "SYSTEM INFORMATION"), 190, 6, 2);
+  GFX->drawString(langManager.getText("TITLE_SYS_VERSION", "SYSTEM INFORMATION"), 190, 10, 2);
 
-  // Version Info Card (X: 10, Y: 32, W: 300, H: 130)
-  drawGlassCard(10, 32, 300, 130, COLOR_CARD_BORDER);
+  // Enlarged Version Info Card (X: 10, Y: 40, W: 300, H: 172)
+  drawGlassCard(10, 40, 300, 172, COLOR_CARD_BORDER);
 
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_SYS_NAME", "FIRMWARE:"), 20, 42, 2);
+  GFX->drawString(langManager.getText("LABEL_SYS_NAME", "FIRMWARE:"), 20, 56, 2);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString("AQUARIUM MASTER CONTROLLER", 130, 42, 2);
+  GFX->drawString("AQUARIUM MASTER CONTROLLER", 105, 56, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_OS_VER", "VERSION:"), 20, 68, 2);
+  GFX->drawString(langManager.getText("LABEL_OS_VER", "VERSION:"), 20, 90, 2);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
-  GFX->drawString(AQUARIUM_OS_VERSION, 130, 68, 4);
+  GFX->drawString(AQUARIUM_OS_VERSION, 105, 90, 4);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_FRAMEWORK", "FRAMEWORK:"), 20, 104, 2);
+  GFX->drawString(langManager.getText("LABEL_FRAMEWORK", "FRAMEWORK:"), 20, 132, 2);
   GFX->setTextColor(COLOR_EMERALD_GREEN, COLOR_CARD_BG);
-  GFX->drawString("ESP32 Arduino / PlatformIO", 130, 104, 2);
+  GFX->drawString("ESP32 Arduino / PlatformIO", 105, 132, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_HARDWARE", "HARDWARE:"), 20, 126, 2);
+  GFX->drawString(langManager.getText("LABEL_HARDWARE", "HARDWARE:"), 20, 164, 2);
   GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-  GFX->drawString("ESP32-DEV 240MHz (4MB Flash)", 130, 126, 2);
+  GFX->drawString("ESP32-DEV 240MHz (4MB Flash)", 105, 164, 2);
 }
 
 void AquariumUI::drawSubScreenEnergySaving() {
@@ -888,18 +898,18 @@ void AquariumUI::drawSubScreenEnergySaving() {
   }
 
   // --- Header ---
-  drawTouchButton(6, 2, 74, 24, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("TITLE_ENERGY_SAVING", "ENERGY SAVING"), 195, 6, 2);
+  GFX->drawString(langManager.getText("TITLE_ENERGY_SAVING", "ENERGY SAVING"), 195, 10, 2);
 
-  // --- Glass Card ---
-  drawGlassCard(10, 28, 300, 100, COLOR_CYAN_GLOW);
+  // --- Glass Card (Enlarged: Y: 40, Height 120) ---
+  drawGlassCard(10, 40, 300, 120, COLOR_CYAN_GLOW);
 
   // Label
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_SCREENSAVER", "SCREEN OFF AFTER:"), 22, 38, 2);
+  GFX->drawString(langManager.getText("LABEL_SCREENSAVER", "SCREEN OFF AFTER:"), 22, 52, 2);
 
   // Current value label
   char valBuf[20];
@@ -913,41 +923,41 @@ void AquariumUI::drawSubScreenEnergySaving() {
 
   GFX->setTextDatum(MC_DATUM);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString(valBuf, 160, 72, 4);
+  GFX->drawString(valBuf, 160, 92, 4);
 
-  // --- Prev / Next buttons ---
-  drawTouchButton(16, 96, 60, 28, "< ", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CARD_BORDER);
-  drawTouchButton(244, 96, 60, 28, " >", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CARD_BORDER);
+  // --- Prev / Next buttons (Enlarged: Height: 44, Width: 70, Y: 110) ---
+  drawTouchButton(16, 110, 70, 44, "< ", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CARD_BORDER);
+  drawTouchButton(234, 110, 70, 44, " >", COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CARD_BORDER);
 
-  // --- Info text ---
+  // --- Info text (Spaced out) ---
   GFX->setTextDatum(MC_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("LABEL_SCREENSAVER_LINE1", "LCD backlight off = energy saving"), 160, 142, 1);
-  GFX->drawString(langManager.getText("LABEL_SCREENSAVER_LINE2", "Touch screen to wake"), 160, 156, 1);
+  GFX->drawString(langManager.getText("LABEL_SCREENSAVER_LINE1", "LCD backlight off = energy saving"), 160, 180, 1);
+  GFX->drawString(langManager.getText("LABEL_SCREENSAVER_LINE2", "Touch screen to wake"), 160, 200, 1);
 }
 
 void AquariumUI::drawSubScreenFactoryReset() {
-  drawTouchButton(6, 2, 74, 24, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
   GFX->setTextDatum(TC_DATUM);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
-  GFX->drawString(langManager.getText("TITLE_FACTORY_RESET", "FACTORY RESET"), 190, 6, 2);
+  GFX->drawString(langManager.getText("TITLE_FACTORY_RESET", "FACTORY_RESET"), 190, 10, 2);
 
-  // Card Background (X: 10, Y: 28, W: 300, H: 130)
-  drawGlassCard(10, 28, 300, 130, COLOR_CORAL_RED);
+  // Card Background (Enlarged: X: 10, Y: 40, W: 300, H: 150)
+  drawGlassCard(10, 40, 300, 150, COLOR_CORAL_RED);
 
   GFX->setTextDatum(MC_DATUM);
 
   if (m_resetStep == 0) {
     GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_RESET_CONFIRM1", "Do you want to restore factory settings?"), 160, 56, 2);
+    GFX->drawString(langManager.getText("MSG_RESET_CONFIRM1", "Do you want to restore factory settings?"), 160, 76, 2);
   } else {
     GFX->setTextColor(COLOR_CORAL_RED, COLOR_CARD_BG);
-    GFX->drawString(langManager.getText("MSG_RESET_CONFIRM2", "ALL SETTINGS WILL BE DELETED!"), 160, 56, 2);
+    GFX->drawString(langManager.getText("MSG_RESET_CONFIRM2", "ALL SETTINGS WILL BE DELETED!"), 160, 76, 2);
   }
 
-  // Draw Yes/No buttons
-  drawTouchButton(30, 96, 110, 38, langManager.getText("BTN_YES", "YES"), COLOR_CARD_BG, COLOR_EMERALD_GREEN, COLOR_EMERALD_GREEN);
-  drawTouchButton(180, 96, 110, 38, langManager.getText("BTN_NO", "NO"), COLOR_CARD_BG, COLOR_CORAL_RED, COLOR_CORAL_RED);
+  // Draw Yes/No buttons (Enlarged: Height: 50, Y: 128)
+  drawTouchButton(30, 128, 110, 50, langManager.getText("BTN_YES", "YES"), COLOR_CARD_BG, COLOR_EMERALD_GREEN, COLOR_EMERALD_GREEN);
+  drawTouchButton(180, 128, 110, 50, langManager.getText("BTN_NO", "NO"), COLOR_CARD_BG, COLOR_CORAL_RED, COLOR_CORAL_RED);
 }
 
 
@@ -1021,7 +1031,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
   if (touchY >= UI_NAVBAR_Y) {
     if (m_activeTab == TAB_SETTINGS) {
         if (m_settingsSubScreen == 0) { // Main settings menu
-              if (touchX >= 10 && touchX <= 150 && touchY >= UI_NAVBAR_Y + 5 && touchY <= UI_NAVBAR_Y + 45) {
+              if (touchX <= 160) {
                   setTab(TAB_DASHBOARD);
               } else {
                   // >> -> vai alla pagina 2 (o torna alla 1)
@@ -1099,7 +1109,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         }
       }
 
-      if (m_settingsSubScreen == 0) {
+      if (m_settingsSubScreen == 0 && m_settingsMenuPage == 0) {
         // Tocco Menu Principale (2 colonne x 4 righe)
         int btnWidth = 145;
         int btnHeight = 40;
@@ -1119,25 +1129,25 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             }
         }
       } else if (m_settingsSubScreen == 1) {
-        // Sub 1: Data & Ora
-        // Date Format Toggle Button (X: 10..310, sy: 105..140)
-        if (touchX >= 10 && touchX <= 310 && sy >= 105 && sy <= 140) {
+        // Sub 1: Data & Ora (Updated for enlarged Y: 104..148 and 164..216)
+        // Date Format Toggle Button (X: 10..310, sy: 104..148)
+        if (touchX >= 10 && touchX <= 310 && sy >= 104 && sy <= 148) {
           aquarium.setDateFormat((cfg.dateFormat + 1) % 3);
         }
-        // NTP Sync Button (X: 10..155, sy: 150..195)
-        else if (touchX >= 10 && touchX <= 155 && sy >= 150 && sy <= 195) {
+        // NTP Sync Button (X: 10..155, sy: 164..216)
+        else if (touchX >= 10 && touchX <= 155 && sy >= 164 && sy <= 216) {
           aquarium.syncNTP();
         }
-        // Timezone -1H (X: 165..230, sy: 150..195)
-        else if (touchX >= 165 && touchX <= 230 && sy >= 150 && sy <= 195) {
+        // Timezone -1H (X: 165..230, sy: 164..216)
+        else if (touchX >= 165 && touchX <= 230 && sy >= 164 && sy <= 216) {
           int tz = ::cfg.timezone.toInt() - 1;
           ::cfg.timezone = (tz > 0 ? "+" : "") + String(tz);
           extern bool writeWholeConfigFileSafe();
           writeWholeConfigFileSafe();
           aquarium.syncNTP();
         }
-        // Timezone +1H (X: 240..310, sy: 150..195)
-        else if (touchX >= 240 && touchX <= 310 && sy >= 150 && sy <= 195) {
+        // Timezone +1H (X: 240..310, sy: 164..216)
+        else if (touchX >= 240 && touchX <= 310 && sy >= 164 && sy <= 216) {
           int tz = ::cfg.timezone.toInt() + 1;
           ::cfg.timezone = (tz > 0 ? "+" : "") + String(tz);
           extern bool writeWholeConfigFileSafe();
@@ -1145,49 +1155,48 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           aquarium.syncNTP();
         }
       } else if (m_settingsSubScreen == 2) {
-        // Sub 2: Soglie Temperatura Target (Minima & Massima Ottimale)
-
-        // Minima Ottimale Buttons (sy: 40..85)
-        if (sy >= 40 && sy <= 85) {
+        // Sub 2: Soglie Temperatura Target (Minima & Massima Ottimale - Enlarged layout)
+        // Minima Ottimale Buttons (sy: 54..106)
+        if (sy >= 54 && sy <= 106) {
           if (touchX >= 130 && touchX <= 170) aquarium.setTargetTemp(cfg.targetTempMin - 1.0f, cfg.targetTempMax);
           if (touchX >= 174 && touchX <= 214) aquarium.setTargetTemp(cfg.targetTempMin - 0.1f, cfg.targetTempMax);
           if (touchX >= 218 && touchX <= 258) aquarium.setTargetTemp(cfg.targetTempMin + 0.1f, cfg.targetTempMax);
           if (touchX >= 262 && touchX <= 302) aquarium.setTargetTemp(cfg.targetTempMin + 1.0f, cfg.targetTempMax);
         }
-        // Massima Ottimale Buttons (sy: 110..155)
-        else if (sy >= 110 && sy <= 155) {
+        // Massima Ottimale Buttons (sy: 146..198)
+        else if (sy >= 146 && sy <= 198) {
           if (touchX >= 130 && touchX <= 170) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax - 1.0f);
           if (touchX >= 174 && touchX <= 214) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax - 0.1f);
           if (touchX >= 218 && touchX <= 258) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax + 0.1f);
           if (touchX >= 262 && touchX <= 302) aquarium.setTargetTemp(cfg.targetTempMin, cfg.targetTempMax + 1.0f);
         }
       } else if (m_settingsSubScreen == 3) {
-        // Sub 3: Stato Relè
-        // Button 1: Commuta Relè Adesso (X: 10..310, sy: 98..130)
-        if (touchX >= 10 && touchX <= 310 && sy >= 98 && sy <= 130) {
+        // Sub 3: Stato Relè (Enlarged layout)
+        // Button 1: Commuta Relè Adesso (X: 10..310, sy: 122..166)
+        if (touchX >= 10 && touchX <= 310 && sy >= 122 && sy <= 166) {
           aquarium.toggleLight();
         }
-        // Button 2: Inverti Logica High/Low (X: 10..310, sy: 134..168)
-        if (touchX >= 10 && touchX <= 310 && sy >= 134 && sy <= 168) {
+        // Button 2: Inverti Logica High/Low (X: 10..310, sy: 178..222)
+        if (touchX >= 10 && touchX <= 310 && sy >= 178 && sy <= 222) {
           aquarium.toggleRelayInverted();
         }
       } else if (m_settingsSubScreen == 4) {
         // Sub 4: WiFi Management & Touch Keyboard Input
         if (m_wifiShowKeyboard) {
-          // Top Left Back Button [ < RETE ] (X: 0..80, sy: 0..26)
-          if (touchX <= 80 && sy <= 26) {
+          // Top Left Back Button [ < NET ] (X: 0..94, sy: 0..36)
+          if (touchX <= 94 && sy <= 36) {
             m_wifiShowKeyboard = false;
             return;
           }
 
-          // Mask Toggle Button [ MOSTRA / NASCONDI ] (X: 260..318, sy: 24..52)
-          if (touchX >= 260 && sy >= 24 && sy <= 52) {
+          // Mask Toggle Button [ MOSTRA / NASCONDI ] (X: 260..318, sy: 38..68)
+          if (touchX >= 260 && sy >= 38 && sy <= 68) {
             m_wifiHidePassword = !m_wifiHidePassword;
             return;
           }
 
-          // Keypad Matrix Rows
-          if (sy >= 54 && sy <= 78) {
+          // Keypad Matrix Rows (Updated for enlarged spacing: Y: 72, 108, 144, Height: 32)
+          if (sy >= 72 && sy <= 104) {
             int kIdx = (touchX - 4) / 31;
             if (kIdx >= 0 && kIdx < 10) {
               const char* r1_low = "qwertyuiop";
@@ -1196,7 +1205,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               char c = (m_kbLayoutMode == 0) ? r1_low[kIdx] : (m_kbLayoutMode == 1) ? r1_upp[kIdx] : r1_sym[kIdx];
               if (m_wifiTypedPassword.length() < 32) m_wifiTypedPassword += c;
             }
-          } else if (sy >= 80 && sy <= 104) {
+          } else if (sy >= 108 && sy <= 140) {
             int kIdx = (touchX - 19) / 31;
             if (kIdx >= 0 && kIdx < 9) {
               const char* r2_low = "asdfghjkl";
@@ -1205,7 +1214,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               char c = (m_kbLayoutMode == 0) ? r2_low[kIdx] : (m_kbLayoutMode == 1) ? r2_upp[kIdx] : r2_sym[kIdx];
               if (m_wifiTypedPassword.length() < 32) m_wifiTypedPassword += c;
             }
-          } else if (sy >= 106 && sy <= 134) {
+          } else if (sy >= 144 && sy <= 176) {
             if (touchX <= 44) {
               if (m_kbLayoutMode == 0) m_kbLayoutMode = 1;
               else if (m_kbLayoutMode == 1) m_kbLayoutMode = 0;
@@ -1223,7 +1232,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                 if (m_wifiTypedPassword.length() < 32) m_wifiTypedPassword += c;
               }
             }
-          } else if (sy >= 136 && sy <= 170) {
+          } else if (sy >= 184 && sy <= 228) {
             if (touchX <= 70) {
               m_kbLayoutMode = (m_kbLayoutMode == 2) ? 0 : 2;
             } else if (touchX >= 71 && touchX <= 172) {
@@ -1236,32 +1245,31 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           return;
         }
 
-        // WiFi Main Screen Touches
-        // Scan Button (sy: 44..70)
-        if (sy >= 44 && sy <= 70) {
+        // WiFi Main Screen Touches (Updated for enlarged layout: Scan Y: 90..128)
+        // Scan Button (sy: 90..128)
+        if (sy >= 90 && sy <= 128) {
           m_pendingWifiScan = true;
           m_wifiListPage = 0;
           aquarium.startAsyncWifiScan();
           return;
         }
 
-
         int netCount = aquarium.getWifiNetworkCount();
         int totalPages = (netCount + 2) / 3;
 
-        // Up/Down Scroll Buttons (touchX >= 260 && totalPages > 1)
+        // Up/Down Scroll Buttons (touchX >= 260 && totalPages > 1 - Updated for Y: 136..180 and 184..228)
         if (touchX >= 260 && totalPages > 1) {
-          if (sy >= 70 && sy <= 116) {
+          if (sy >= 136 && sy <= 180) {
             if (m_wifiListPage > 0) m_wifiListPage--;
-          } else if (sy >= 118 && sy <= 168) {
+          } else if (sy >= 184 && sy <= 228) {
             if (m_wifiListPage < totalPages - 1) m_wifiListPage++;
           }
           return;
         }
 
-        // Tapping Scanned Network Items (sy: 72..168, touchX < 260)
-        if (sy >= 72) {
-          int slot = (sy - 72) / 32;
+        // Tapping Scanned Network Items (sy: 136..244, touchX < 260)
+        if (sy >= 136 && sy <= 244) {
+          int slot = (sy - 136) / 36;
           if (slot >= 0 && slot < 3) {
             int netIdx = m_wifiListPage * 3 + slot;
             if (netIdx >= 0 && netIdx < netCount) {
@@ -1277,9 +1285,9 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           }
         }
       } else if (m_settingsSubScreen == 6) {
-        // Sub 6: Language Selector
-        if (sy >= 32) {
-          int idx = (sy - 32) / 34;
+        // Sub 6: Language Selector (Updated for Y: 40 + i * 44)
+        if (sy >= 40) {
+          int idx = (sy - 40) / 44;
           if (idx >= 0 && idx < langManager.getAvailableLanguageCount()) {
             LangItem item = langManager.getAvailableLanguage(idx);
             aquarium.setLanguageFile(item.filename);
@@ -1288,25 +1296,24 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           }
         }
       } else if (m_settingsSubScreen == 7) {
-        // Sub 7: Energy Saving
+        // Sub 7: Energy Saving (Updated for Y: 110..154 and larger buttons)
         static const uint16_t SS_TIMES[] = { 0, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 900, 1200, 1800, 2700, 3600 };
         static const int      SS_COUNT   = sizeof(SS_TIMES) / sizeof(SS_TIMES[0]);
-        int sy7 = touchY - UI_SPRITE_Y_OFFSET;
-        if (sy7 >= 96 && sy7 <= 124) {
-          // "<" Prev button (x: 16..76)
-          if (touchX >= 16 && touchX <= 76) {
+        if (sy >= 110 && sy <= 154) {
+          // "<" Prev button (x: 16..86)
+          if (touchX >= 16 && touchX <= 86) {
             if (m_screensaverIdx > 0) m_screensaverIdx--;
             aquarium.setScreensaverTime(SS_TIMES[m_screensaverIdx]);
           }
-          // ">" Next button (x: 244..304)
-          else if (touchX >= 244 && touchX <= 304) {
+          // ">" Next button (x: 234..304)
+          else if (touchX >= 234 && touchX <= 304) {
             if (m_screensaverIdx < SS_COUNT - 1) m_screensaverIdx++;
             aquarium.setScreensaverTime(SS_TIMES[m_screensaverIdx]);
           }
         }
       } else if (m_settingsSubScreen == 8) {
-        // Sub 8: Factory Reset
-        if (sy >= 96 && sy <= 134) {
+        // Sub 8: Factory Reset (Updated for enlarged Y: 128..178)
+        if (sy >= 128 && sy <= 178) {
           // YES button (X: 30..140)
           if (touchX >= 30 && touchX <= 140) {
             if (m_resetStep == 0) {
