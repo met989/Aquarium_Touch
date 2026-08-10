@@ -723,7 +723,9 @@ void GIFDraw(GIFDRAW *pDraw) {
   } else {
     s = pDraw->pPixels;
     for (x = 0; x < iWidth; x++) usTemp[x] = usPalette[*s++];
+    tft.setSwapBytes(true);
     tft.pushImage(pDraw->iX + gifOffsetX, y, iWidth, 1, usTemp);
+    tft.setSwapBytes(false);
   }
 }
 
@@ -744,7 +746,7 @@ void setup() {
     while (true)
       delay(1000);
   }
-  gif.begin(BIG_ENDIAN_PIXELS);
+  gif.begin(LITTLE_ENDIAN_PIXELS);
   if (gif.open("/boot.gif", GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
     tft.fillScreen(TFT_BLACK);
     GIFINFO gi;
