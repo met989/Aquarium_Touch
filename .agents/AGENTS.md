@@ -7,4 +7,5 @@
 
 ## Workflow Rules
 4. **Auto-Upload**: Upon creating or modifying code, automatically build and upload the firmware to the ESP32 board using `pio run --target upload` without waiting for manual upload instructions.
+5. **README Maintenance**: ALWAYS keep `README.md` updated with technical specifications, pinouts, features, architecture, and configuration options whenever new changes or features are added to the project.
 
