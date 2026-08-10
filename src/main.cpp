@@ -666,11 +666,23 @@ void setup() {
   bool forceCalibration = !touchCalibrationAvailableForMode(cfg.screenMode);
   if (forceCalibration || bootHeldFor3Seconds()) {
     if (calibrateTouchCurrentRotation()) {
-      for (int s = 1; s >= 1; s--) {
-        showCountdownSave(s);
-        delay(1000);
-      }
       writeWholeConfigFileSafe();
+      drawTouchLiveScreen();
+      
+      unsigned long lastTouchTime = millis();
+      while (millis() - lastTouchTime < 5000) {
+        if (touch.touched()) {
+          lastTouchTime = millis();
+          TS_Point p = touch.getPoint();
+          int tx = -1, ty = -1;
+          mapTouchFromConfig(p, tx, ty);
+          if (tx >= 0 && ty >= 0) {
+            tft.fillCircle(tx, ty, 3, TFT_YELLOW);
+          }
+        }
+        delay(10);
+      }
+      
       ESP.restart();
     }
   }
