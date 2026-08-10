@@ -55,32 +55,13 @@ void AquariumLogic::disconnectWifi() {
 }
 
 void AquariumLogic::startAsyncWifiScan() {
-  WiFi.mode(WIFI_STA);
-  m_wifiScanStatus = langManager.getText("MSG_SCANNING", "PLEASE WAIT... Scanning networks");
+  m_wifiScanStatus = langManager.getText("MSG_SCANNING_BG", "Scanning...");
   m_wifiScanning = true;
-}
-
-void AquariumLogic::executeWifiScan() {
-  m_wifiNetworkCount = 0;
-  int n = WiFi.scanNetworks(false, true);
-  if (n <= 0) {
-    m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
-  } else {
-    m_wifiNetworkCount = (n > 12) ? 12 : n;
-    for (int i = 0; i < m_wifiNetworkCount; i++) {
-      m_scannedNetworks[i].ssid = WiFi.SSID(i);
-      m_scannedNetworks[i].rssi = WiFi.RSSI(i);
-      m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
-    }
-    m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
-  }
-  WiFi.scanDelete();
-  m_wifiScanning = false;
+  WiFi.scanNetworks(true, true);
 }
 
 void AquariumLogic::scanWifi() {
   startAsyncWifiScan();
-  executeWifiScan();
 }
 
 
@@ -137,6 +118,29 @@ void AquariumLogic::update() {
   if (now - m_lastSensorRead >= 2000) {
     m_lastSensorRead = now;
     readSensor();
+  }
+
+  // WiFi Async Scan Polling
+  if (m_wifiScanning) {
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_FAILED) {
+      m_wifiScanStatus = "Scan Failed";
+      m_wifiScanning = false;
+    } else if (n >= 0) {
+      m_wifiNetworkCount = (n > 12) ? 12 : n;
+      if (n == 0) {
+        m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
+      } else {
+        for (int i = 0; i < m_wifiNetworkCount; i++) {
+          m_scannedNetworks[i].ssid = WiFi.SSID(i);
+          m_scannedNetworks[i].rssi = WiFi.RSSI(i);
+          m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
+        }
+        m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
+      }
+      WiFi.scanDelete();
+      m_wifiScanning = false;
+    }
   }
 }
 

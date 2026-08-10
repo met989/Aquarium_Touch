@@ -755,10 +755,6 @@ void AquariumUI::drawSubScreenWifi() {
     GFX->drawString(langManager.getText("MSG_SEARCHING_SIGNALS", "Searching Wi-Fi signals..."), 160, 204, 1);
 
     if (m_pendingWifiScan) {
-      if (m_tft) {
-        m_sprite->pushSprite(0, UI_SPRITE_Y_OFFSET);
-      }
-      aquarium.executeWifiScan();
       m_pendingWifiScan = false;
     }
     return;
@@ -1324,7 +1320,6 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               GFX->setTextDatum(MC_DATUM);
               GFX->drawString("FORMATTING SD CARD...", 160, 70, 2);
               GFX->drawString("PLEASE WAIT...", 160, 102, 2);
-              m_sprite->pushSprite(0, UI_SPRITE_Y_OFFSET);
               
               BYTE* work = (BYTE*)malloc(sizeof(BYTE) * FF_MAX_SS);
               if (work) {

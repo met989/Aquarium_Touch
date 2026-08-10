@@ -63,7 +63,7 @@ public:
   void disconnectWifi();
   void scanWifi();
   void startAsyncWifiScan();
-  void executeWifiScan();
+
   bool isWifiScanning() const { return m_wifiScanning; }
   int getWifiNetworkCount() const { return m_wifiNetworkCount; }
   WifiNetworkItem getWifiNetwork(int idx) const;
