@@ -126,6 +126,14 @@ void AquariumUI::update() {
     }
   }
 
+  WifiConnectState currentConnState = aquarium.getWifiConnectState();
+  if (m_lastWifiConnectState != currentConnState) {
+    m_lastWifiConnectState = currentConnState;
+    if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 4) {
+      m_settingsNeedsRedraw = true;
+    }
+  }
+
   // 1. Update Animations (skips calculations if on SETTINGS)
   updateAnimations();
 
@@ -753,6 +761,29 @@ void AquariumUI::drawSubScreenWifi() {
   // Scan Button [ SCANSIONE RETI WI-FI ] (Shifted down Y: 90, Height: 38)
   drawTouchButton(6, 90, 308, 38, langManager.getText("BTN_SCAN", "SCAN WI-FI NETWORKS"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
 
+  WifiConnectState connState = aquarium.getWifiConnectState();
+  if (connState != WIFI_CONN_IDLE) {
+    drawGlassCard(6, 136, 308, 94, COLOR_CYAN_GLOW);
+    GFX->setTextDatum(MC_DATUM);
+    
+    if (connState == WIFI_CONN_CONNECTING) {
+      GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
+      GFX->drawString(langManager.getText("MSG_CONNECTING_NOW", "Connessione in corso..."), 160, 176, 2);
+      GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
+      GFX->drawString(aquarium.getWifiConnectSSID(), 160, 204, 2);
+    } else if (connState == WIFI_CONN_SUCCESS) {
+      GFX->setTextColor(TFT_GREEN, COLOR_CARD_BG);
+      String msg = String(langManager.getText("MSG_CONNECTED_TO", "CONNESSO AL WIFI")) + " " + aquarium.getWifiConnectSSID();
+      GFX->drawString(msg, 160, 183, 2);
+    } else {
+      GFX->setTextColor(TFT_RED, COLOR_CARD_BG);
+      GFX->drawString(langManager.getText("MSG_CONNECT_FAILED", "ERRORE DI CONNESSIONE"), 160, 176, 2);
+      GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
+      GFX->drawString(aquarium.getWifiConnectSSID(), 160, 204, 2);
+    }
+    return;
+  }
+
   // Scanned Networks List (Shifted down Y: 136..234)
   if (aquarium.isWifiScanning()) {
     drawGlassCard(6, 136, 308, 94, COLOR_CYAN_GLOW);
@@ -1190,7 +1221,16 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 4) {
-        // Sub 4: WiFi Management & Touch Keyboard Input
+        // Sub 4: Wi-Fi Setup
+
+        if (aquarium.getWifiConnectState() != WIFI_CONN_IDLE) {
+           if (aquarium.getWifiConnectState() != WIFI_CONN_CONNECTING) {
+             aquarium.resetWifiConnectState();
+             m_settingsNeedsRedraw = true;
+           }
+           return;
+        }
+
         if (m_wifiShowKeyboard) {
           // Top Left Back Button [ < NET ] (X: 0..94, sy: 0..36)
           if (touchX <= 94 && sy <= 36) {

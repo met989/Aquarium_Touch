@@ -33,17 +33,25 @@ int AquariumLogic::getWifiRSSI() const {
 
 extern AppConfig cfg;
 
+String AquariumLogic::getWifiConnectSSID() const {
+  return cfg.wifiSsid;
+}
+
 void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) {
   cfg.wifiSsid = ssid;
   cfg.wifiPassword = password;
 
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true);
+  delay(100);
   if (password.length() > 0) {
     WiFi.begin(ssid.c_str(), password.c_str());
   } else {
     WiFi.begin(ssid.c_str());
   }
-  m_wifiScanStatus = String(langManager.getText("MSG_CONNECTING ", "Connecting to ")) + ssid + "...";
+  m_wifiScanStatus = String(langManager.getText("MSG_CONNECTING", "Connecting to ")) + ssid + "...";
+  m_wifiConnectState = WIFI_CONN_CONNECTING;
+  m_wifiConnectStartTime = millis();
   saveConfigSD();
 }
 
@@ -139,6 +147,22 @@ void AquariumLogic::update() {
       WiFi.scanDelete();
       m_wifiScanning = false;
       m_wifiScanCounter++;
+    }
+  }
+
+  // WiFi Connection state machine
+  if (m_wifiConnectState == WIFI_CONN_CONNECTING) {
+    wl_status_t st = WiFi.status();
+    if (st == WL_CONNECTED) {
+      m_wifiConnectState = WIFI_CONN_SUCCESS;
+      m_wifiConnectResultTime = millis();
+    } else if (millis() - m_wifiConnectStartTime > 15000 || st == WL_CONNECT_FAILED || st == WL_NO_SSID_AVAIL) {
+      m_wifiConnectState = WIFI_CONN_FAILED;
+      m_wifiConnectResultTime = millis();
+    }
+  } else if (m_wifiConnectState == WIFI_CONN_SUCCESS || m_wifiConnectState == WIFI_CONN_FAILED) {
+    if (millis() - m_wifiConnectResultTime > 5000) {
+      m_wifiConnectState = WIFI_CONN_IDLE;
     }
   }
 }

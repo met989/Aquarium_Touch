@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include "config.h"
+#include "aquarium_logic.h"
 
 enum UiTab {
   TAB_DASHBOARD = 0,
@@ -105,6 +106,7 @@ private:
   uint32_t m_lastAnimTime = 0;
   uint32_t m_lastTouchTime = 0;
   uint8_t m_lastWifiScanCounter = 0;
+  WifiConnectState m_lastWifiConnectState = WIFI_CONN_IDLE;
 
   // Temperature Interpolation for Smooth Needle
   float m_animatedTemp = 25.4f;

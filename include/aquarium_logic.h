@@ -2,7 +2,16 @@
 #define AQUARIUM_LOGIC_H
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include "config.h"
+#include "language_manager.h"
+
+enum WifiConnectState {
+  WIFI_CONN_IDLE,
+  WIFI_CONN_CONNECTING,
+  WIFI_CONN_SUCCESS,
+  WIFI_CONN_FAILED
+};
 
 enum TempStatus {
   TEMP_OPTIMAL = 0,
@@ -69,6 +78,9 @@ public:
   WifiNetworkItem getWifiNetwork(int idx) const;
   String getWifiScanStatus() const { return m_wifiScanStatus; }
   uint8_t getWifiScanCounter() const { return m_wifiScanCounter; }
+  WifiConnectState getWifiConnectState() const { return m_wifiConnectState; }
+  void resetWifiConnectState() { m_wifiConnectState = WIFI_CONN_IDLE; }
+  String getWifiConnectSSID() const;
 
 
 
@@ -123,6 +135,10 @@ private:
   uint8_t m_wifiScanCounter = 0;
   int m_wifiNetworkCount = 0;
   WifiNetworkItem m_scannedNetworks[12];
+
+  WifiConnectState m_wifiConnectState = WIFI_CONN_IDLE;
+  uint32_t m_wifiConnectStartTime = 0;
+  uint32_t m_wifiConnectResultTime = 0;
 };
 
 
