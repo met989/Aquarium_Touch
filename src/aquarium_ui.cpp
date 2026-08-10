@@ -528,7 +528,7 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         // Title (Shifted down)
         GFX->setTextColor(COLOR_CYAN_GLOW);
         GFX->setTextDatum(TC_DATUM);
-        String titleStr = String(langManager.getText("TITLE_DATETIME", "DATE & TIME")) + " [ TZ: " + cfg.timezone + " ]";
+        String titleStr = String(langManager.getText("TITLE_DATETIME", "DATE & TIME")) + " [ UTC: " + cfg.timezone + " ]";
         GFX->drawString(titleStr.c_str(), 190, 10, 2);
 
         // Date Time Card (Huge - Shifted down)
@@ -541,7 +541,7 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         
         GFX->fillRoundRect(10, 48, 300, 40, 8, COLOR_CYAN_GLOW);
         GFX->setTextColor(COLOR_BG_OCEAN);
-        GFX->drawString(combined, 160, 68, 4);
+        GFX->drawString(combined, 160, 57, 4);
         
         // Date Format Toggle Button (Larger: Y: 104, Height: 44)
         GFX->fillRoundRect(10, 104, 300, 44, 8, COLOR_CARD_BORDER);
@@ -553,21 +553,21 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         if (acfg.dateFormat == DATE_FORMAT_DDMMYYYY) fmtLabel += "GG/MM/AAAA";
         else if (acfg.dateFormat == DATE_FORMAT_MMDDYYYY) fmtLabel += "MM/GG/AAAA";
         else fmtLabel += "AAAA/MM/GG";
-        GFX->drawString(fmtLabel, 160, 126, 2);
+        GFX->drawString(fmtLabel, 160, 118, 2);
         
         // NTP Sync Button (Larger: Y: 164, Height: 52)
         GFX->fillRoundRect(10, 164, 145, 52, 8, COLOR_CARD_BORDER);
         GFX->drawRoundRect(10, 164, 145, 52, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("SYNC NTP", 82, 190, 2);
+        GFX->drawString("SYNC NTP", 82, 182, 2);
         
         // Timezone Buttons (Larger: Y: 164, Height: 52)
         GFX->fillRoundRect(165, 164, 65, 52, 8, COLOR_CARD_BORDER);
         GFX->drawRoundRect(165, 164, 65, 52, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("-1H TZ", 197, 190, 2);
+        GFX->drawString("-1H", 199, 182, 2);
         
         GFX->fillRoundRect(240, 164, 70, 52, 8, COLOR_CARD_BORDER);
         GFX->drawRoundRect(240, 164, 70, 52, 8, COLOR_CYAN_GLOW);
-        GFX->drawString("+1H TZ", 275, 190, 2);
+        GFX->drawString("+1H", 277, 182, 2);
     } else {
         // Altre subscreen
         if (sub == 2) drawSubScreenTempTarget();

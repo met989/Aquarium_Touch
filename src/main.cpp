@@ -650,6 +650,83 @@ void drawSummary(const char *stateMsg) {
 #include "aquarium_logic.h"
 #include "aquarium_ui.h"
 #include "language_manager.h"
+#include <AnimatedGIF.h>
+
+AnimatedGIF gif;
+int gifOffsetX = 0;
+int gifOffsetY = 0;
+
+void *GIFOpenFile(const char *fname, int32_t *pSize) {
+  File* f = new File(SD.open(fname));
+  if (*f) {
+    *pSize = f->size();
+    return (void *)f;
+  }
+  delete f;
+  return NULL;
+}
+
+void GIFCloseFile(void *pHandle) {
+  File *f = static_cast<File *>(pHandle);
+  if (f != NULL) {
+    f->close();
+    delete f;
+  }
+}
+
+int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen) {
+  int32_t iBytesRead = iLen;
+  File *f = static_cast<File *>(pFile->fHandle);
+  if ((pFile->iSize - pFile->iPos) < iLen)
+    iBytesRead = pFile->iSize - pFile->iPos;
+  if (iBytesRead <= 0)
+    return 0;
+  iBytesRead = (int32_t)f->read(pBuf, iBytesRead);
+  pFile->iPos = f->position();
+  return iBytesRead;
+}
+
+int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition) {
+  File *f = static_cast<File *>(pFile->fHandle);
+  f->seek(iPosition);
+  pFile->iPos = (int32_t)f->position();
+  return pFile->iPos;
+}
+
+void GIFDraw(GIFDRAW *pDraw) {
+  uint8_t *s;
+  uint16_t *usPalette, usTemp[320];
+  int x, y, iWidth;
+
+  iWidth = pDraw->iWidth;
+  if (iWidth + pDraw->iX + gifOffsetX > physW)
+    iWidth = physW - pDraw->iX - gifOffsetX;
+
+  usPalette = pDraw->pPalette;
+  y = pDraw->iY + pDraw->y + gifOffsetY;
+
+  if (y >= physH || pDraw->iX + gifOffsetX >= physW || iWidth < 1)
+    return;
+
+  s = pDraw->pPixels;
+  if (pDraw->ucHasTransparency) {
+    uint8_t *pEnd, c, ucTransparent = pDraw->ucTransparent;
+    pEnd = s + iWidth;
+    x = 0;
+    while (s < pEnd) {
+      c = *s++;
+      if (c != ucTransparent) {
+        tft.drawPixel(pDraw->iX + gifOffsetX + x, y, usPalette[c]);
+      }
+      x++;
+    }
+  } else {
+    s = pDraw->pPixels;
+    for (x = 0; x < iWidth; x++) usTemp[x] = usPalette[*s++];
+    tft.pushImage(pDraw->iX + gifOffsetX, y, iWidth, 1, usTemp);
+  }
+}
+
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -662,12 +739,31 @@ void setup() {
   tft.begin();
   setDefaults();
   applyScreenMode();
-  showMessage("AQUARIUM OS", "Avvio sistema acquario...", TFT_BLACK,
-              COLOR_CYAN_GLOW);
-
-  if (!initSD())
+  if (!initSD()) {
+    showMessage("SD ERROR", "Error SD memory!", TFT_RED, TFT_WHITE);
     while (true)
       delay(1000);
+  }
+
+  gif.begin(LITTLE_ENDIAN_PIXELS);
+  if (gif.open("/boot.gif", GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
+    tft.fillScreen(TFT_BLACK);
+    GIFINFO gi;
+    gif.getInfo(&gi);
+    gifOffsetX = (physW - gif.getCanvasWidth()) / 2;
+    gifOffsetY = (physH - gif.getCanvasHeight()) / 2;
+    
+    uint32_t start_time = millis();
+    while (millis() - start_time < 5000) {
+      if (!gif.playFrame(true, NULL)) {
+        gif.reset();
+      }
+    }
+    gif.close();
+  } else {
+    showMessage("AQUARIUM OS", "Starting system...", TFT_BLACK, COLOR_CYAN_GLOW);
+    delay(1500); // Allow time to read if no gif
+  }
 
   langManager.init();
 
