@@ -349,22 +349,15 @@ bool loadConfigFromSD(bool &created, bool &updated) {
   return true;
 }
 
-bool isWokwiSimulator() {
-  uint8_t mac[6];
-  esp_read_mac(mac, ESP_MAC_WIFI_STA);
-  return (mac[0] == 0x24 && mac[1] == 0x0a && mac[2] == 0xc4 &&
-          mac[3] == 0x00 && mac[4] == 0x01 && mac[5] == 0x10);
-}
+
 
 void applyScreenMode() {
   static const uint8_t rotTable[4] = {2, 1, 0, 3};
   static const uint8_t madctlTable[4] = {0xE0, 0x40, 0x20, 0x80};
   uint8_t mode = (cfg.screenMode > 3) ? 1 : cfg.screenMode;
   tft.setRotation(rotTable[mode]);
-  if (!isWokwiSimulator()) {
-    tft.writecommand(0x36);
-    tft.writedata(madctlTable[mode]);
-  }
+  tft.writecommand(0x36);
+  tft.writedata(madctlTable[mode]);
   if (mode == 0 || mode == 2) {
     physW = 240;
     physH = 320;
@@ -435,11 +428,7 @@ void listRootFiles() {
 
 bool initSD() {
   DBG_PRINTF("[SD] init CS=%d\n", SD_CS);
-  if (isWokwiSimulator()) {
-    Serial.println(
-        "[SD] Wokwi Simulator: mocking successful SD initialization!");
-    return true;
-  }
+
   if (!SD.begin(SD_CS)) {
     showMessage("SD ERROR", "SD card not readable", TFT_RED, TFT_WHITE);
     return false;
@@ -543,7 +532,7 @@ bool calibrateTouchCurrentRotation() {
     }
 
     if (!ok) {
-      showMessage("CALIBRATION", "Timeout punto " + String(i + 1), TFT_RED,
+      showMessage("CALIBRATION", "Timeout point " + String(i + 1), TFT_RED,
                   TFT_WHITE);
       delay(1500);
       return false;
@@ -605,11 +594,9 @@ void drawTouchLiveScreen() {
   tft.drawFastVLine(physW / 2, 0, physH, TFT_WHITE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_DARKGREEN);
-  tft.drawString("TOUCH LIVE", physW / 2, 18, 4);
-  tft.drawString(("Rotazione mode=" + String(cfg.screenMode)).c_str(),
-                 physW / 2, 48, 2);
-  tft.drawString("calibration OK", physW / 2, 70, 2);
-  tft.drawString("BOOT 3s per ricalibrare", physW / 2, 90, 2);
+  tft.drawString("TOUCH LIVE TEST", physW / 2, 18, 4);
+  tft.drawString("Waiting 5 seconds for reboot", physW / 2, 70, 2);
+  tft.drawString("or press Reset and Button for recalibration", physW / 2, 90, 2);
 }
 
 void drawSummary(const char *stateMsg) {
@@ -655,11 +642,7 @@ void setup() {
   loadConfigFromSD(created, updated);
   applyScreenMode();
 
-  if (isWokwiSimulator()) {
-    touchSPI = new SPIClass(VSPI);
-  } else {
-    touchSPI = new SPIClass(HSPI);
-  }
+  touchSPI = new SPIClass(HSPI);
   touchSPI->begin(TOUCH_SCK, TOUCH_MISO, TOUCH_MOSI, TOUCH_CS);
   touch.begin(*touchSPI);
 
