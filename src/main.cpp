@@ -744,8 +744,7 @@ void setup() {
     while (true)
       delay(1000);
   }
-
-  gif.begin(LITTLE_ENDIAN_PIXELS);
+  gif.begin(BIG_ENDIAN_PIXELS);
   if (gif.open("/boot.gif", GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
     tft.fillScreen(TFT_BLACK);
     GIFINFO gi;
