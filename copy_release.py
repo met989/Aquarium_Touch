@@ -1,10 +1,12 @@
-# pyright: reportUndefinedVariable=false
-try:
-    Import("env") # type: ignore
-except NameError:
-    pass
+if "Import" not in globals():
+    def Import(*args, **kwargs): pass
+    class MockEnv:
+        def get(self, key): return ""
+        def AddPostAction(self, target, action): pass
+    env = MockEnv()
 
-env = locals().get("env") # type: ignore
+Import("env")
+env = globals().get("env") or locals().get("env")
 
 import os
 import shutil
