@@ -1,4 +1,11 @@
-Import("env")
+# pyright: reportUndefinedVariable=false
+try:
+    Import("env") # type: ignore
+except NameError:
+    pass
+
+env = locals().get("env") # type: ignore
+
 import os
 import shutil
 import re
