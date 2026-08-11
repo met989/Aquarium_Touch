@@ -30,57 +30,26 @@ bool LanguageManager::loadLanguage(const String &langNameOrPath) {
   else if (pureName.startsWith("/"))
     pureName = pureName.substring(1);
 
-  const char* content = nullptr;
+  m_activeLang = nullptr;
   for (int i = 0; i < EMBEDDED_LANGUAGES_COUNT; i++) {
     if (String(EMBEDDED_LANGUAGES[i].filename) == pureName) {
-      content = EMBEDDED_LANGUAGES[i].content;
+      m_activeLang = &EMBEDDED_LANGUAGES[i];
       break;
     }
   }
 
-  if (content == nullptr) {
+  if (m_activeLang == nullptr) {
     if (EMBEDDED_LANGUAGES_COUNT > 0) {
-      content = EMBEDDED_LANGUAGES[0].content;
+      m_activeLang = &EMBEDDED_LANGUAGES[0];
       pureName = EMBEDDED_LANGUAGES[0].filename;
     } else {
       return false;
     }
   }
 
-  m_dictionary.clear();
   m_activeLangFile = pureName;
+  m_activeLangName = m_activeLang->name;
 
-  const char* p = content;
-  while (*p != '\0') {
-    String line = "";
-    while (*p != '\0' && *p != '\n') {
-      if (*p != '\r') {
-        line += *p;
-      }
-      p++;
-    }
-    if (*p == '\n') {
-      p++;
-    }
-
-    line.trim();
-    if (line.length() == 0 || line.startsWith("#"))
-      continue;
-    int eq = line.indexOf('=');
-    if (eq > 0) {
-      String k = line.substring(0, eq);
-      String v = line.substring(eq + 1);
-      k.trim();
-      v.trim();
-      m_dictionary[k] = v;
-    }
-  }
-
-  if (m_dictionary.find("LANG_NAME") != m_dictionary.end()) {
-    m_activeLangName = m_dictionary["LANG_NAME"];
-  } else {
-    m_activeLangName = pureName;
-  }
   return true;
 }
 
@@ -92,11 +61,15 @@ LangItem LanguageManager::getAvailableLanguage(int idx) const {
 }
 
 const char *LanguageManager::getText(const char *key, const char *fallback) {
-  if (key == nullptr)
-    return fallback ? fallback : "";
-  auto it = m_dictionary.find(String(key));
-  if (it != m_dictionary.end()) {
-    return it->second.c_str();
+  if (key == nullptr) return fallback ? fallback : "";
+  if (m_activeLang != nullptr) {
+    for (int i = 0; i < m_activeLang->num_entries; i++) {
+      if (strcmp(m_activeLang->entries[i].key, key) == 0) {
+        return m_activeLang->entries[i].value;
+      }
+    }
   }
   return fallback ? fallback : key;
 }
+
+

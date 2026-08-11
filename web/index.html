@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquarium Master Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-ocean: #0a192f;
+      --card-bg: rgba(23, 42, 69, 0.75);
+      --card-border: rgba(46, 76, 109, 0.8);
+      --cyan-glow: #00f0ff;
+      --emerald: #00e676;
+      --coral: #ff5252;
+      --gold: #ffd700;
+      --text-muted: #8892b0;
+      --text-light: #e6f1ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+    body { background: radial-gradient(circle at top, #0e2447 0%, var(--bg-ocean) 100%); color: var(--text-light); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: var(--card-bg); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid var(--card-border); margin-bottom: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); flex-wrap: wrap; gap: 12px; }
+    .title-group { display: flex; align-items: center; gap: 14px; }
+    .title-group h1 { font-size: 1.5rem; font-weight: 700; color: var(--cyan-glow); }
+    .header-badges { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .badge { padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; background: rgba(0,230,118,0.15); color: var(--emerald); border: 1px solid var(--emerald); }
+    .badge-gold { background: rgba(255,215,0,0.15); color: var(--gold); border-color: var(--gold); }
+    .badge-cyan { background: rgba(0,240,255,0.1); color: var(--cyan-glow); border-color: var(--cyan-glow); }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--gold); margin: 28px 0 14px; padding-left: 8px; border-left: 3px solid var(--gold); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-bottom: 20px; }
+    .card { background: var(--card-bg); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid var(--card-border); padding: 22px; transition: border-color 0.2s; }
+    .card:hover { border-color: var(--cyan-glow); }
+    .card-title { font-size: 1.05rem; font-weight: 600; color: var(--cyan-glow); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .temp-display { font-size: 2.8rem; font-weight: 700; color: #fff; text-align: center; margin: 6px 0; }
+    .btn { width: 100%; padding: 11px; border-radius: 10px; border: none; font-weight: 600; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+    .btn-cyan { background: var(--cyan-glow); color: #0a192f; }
+    .btn-cyan:hover { background: #56f5ff; box-shadow: 0 0 15px rgba(0,240,255,0.4); }
+    .btn-gold { background: var(--gold); color: #0a192f; }
+    .btn-gold:hover { background: #ffe44d; }
+    .btn-emerald { background: var(--emerald); color: #0a192f; }
+    .btn-emerald:hover { background: #69f0ae; }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text-light); }
+    .btn-outline:hover { border-color: var(--cyan-glow); color: var(--cyan-glow); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+    .form-group input, .form-group select { width: 100%; padding: 9px 12px; border-radius: 8px; background: rgba(10,25,47,0.8); border: 1px solid var(--card-border); color: #fff; font-size: 0.95rem; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--cyan-glow); }
+    textarea { width: 100%; height: 220px; background: rgba(10,25,47,0.9); border: 1px solid var(--card-border); border-radius: 10px; color: var(--cyan-glow); font-family: monospace; padding: 12px; font-size: 0.88rem; resize: vertical; outline: none; }
+    .full-width { grid-column: 1 / -1; }
+    .flex-row { display: flex; gap: 10px; }
+    .flex-row > * { flex: 1; }
+    .divider { border: 0; border-top: 1px solid var(--card-border); margin: 14px 0; }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(46,76,109,0.4); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--text-muted); font-size: 0.88rem; }
+    .stat-value { color: #fff; font-weight: 600; font-size: 0.95rem; }
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; background: var(--emerald); color: #0a192f; font-weight: 600; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.4); z-index: 1000; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="title-group">
+      <span style="font-size:1.8rem">🐠</span>
+      <div>
+        <h1><span data-i18n="TITLE_WEB_PANEL">Aquarium Master Control Panel</span></h1>
+        <div style="font-size:0.8rem;color:var(--text-muted)"><span data-i18n="SUBTITLE_WEB">ESP32 Aquarium OS</span> v<span id="fwVersion">--</span> &nbsp;|&nbsp; Lingua: <span id="langNameHeader">--</span></div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <div class="badge badge-cyan">IP: <span id="ipAddr">...</span></div>
+      <div class="badge badge-gold" id="wifiStatusBadge">Wi-Fi: --</div>
+    </div>
+  </header>
+
+  <!-- SCHERMATA UNICA CARDS -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">🌡️ <span data-i18n="TITLE_WATER_TEMP">Temperatura Acqua</span></div>
+      <div id="tempVal" class="temp-display">--.- °C</div>
+      <div style="text-align:center;color:var(--emerald);font-weight:600;margin-bottom:12px" id="tempStatus">--</div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_MIN_OPT">Min Ottimale</span></span><span class="stat-value" id="statTempMin">-- °C</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_MAX_OPT">Max Ottimale</span></span><span class="stat-value" id="statTempMax">-- °C</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_TEMP_OFFSET_S">Offset Sensore</span></span><span class="stat-value" id="statTempOff">-- °C</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 <span data-i18n="TITLE_LIGHT_TIMER">Luce & Timer</span></div>
+      <div style="font-size:1.3rem;font-weight:600;text-align:center;margin:8px 0" id="lightStatus"><span data-i18n="LABEL_STATUS">STATO:</span> --</div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_MODE">Modalità</span></span><span class="stat-value" id="statMode">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_ON_TIME">Accensione</span></span><span class="stat-value" id="statOnTime">--:--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_OFF_TIME">Spegnimento</span></span><span class="stat-value" id="statOffTime">--:--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_RELAY_POL">Polarità Relè</span></span><span class="stat-value" id="statRelay">--</span></div>
+      <div class="flex-row" style="margin-top:14px">
+        <button class="btn btn-gold" onclick="toggleLight()">⚡ <span data-i18n="BTN_TOGGLE_LIGHT">Commuta Luce</span></button>
+        <button class="btn btn-outline" onclick="toggleAuto()">🔄 <span data-i18n="BTN_TOGGLE_AUTO">Auto/Manuale</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">⏰ <span data-i18n="TITLE_CLOCK_DATE">Orologio & Data</span></div>
+      <div style="font-size:2rem;font-weight:700;text-align:center;color:var(--cyan-glow);margin:10px 0" id="liveTime">00:00:00</div>
+      <div style="text-align:center;color:var(--text-muted);margin-bottom:12px" id="liveDate">--/--/----</div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_TZ">Timezone</span></span><span class="stat-value" id="statTz">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_FMT_HOUR">Formato ora</span></span><span class="stat-value" id="statFmtHour">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_FMT_DATE">Formato data</span></span><span class="stat-value" id="statFmtDate">--</span></div>
+      <div class="stat-row"><span class="stat-label">NTP</span><span class="stat-value" id="statNtp1">--</span></div>
+      <button class="btn btn-outline" onclick="triggerNtpSync()" style="margin-top:12px">🌐 <span data-i18n="BTN_SYNC_NTP">Sincronizza NTP Ora</span></button>
+    </div>
+    <!-- TEMPERATURA -->
+    <!-- TEMPERATURA -->
+    <div class="card">
+      <div class="card-title">🌡️ <span data-i18n="TITLE_TEMP_THRESHOLDS">Soglie Temperatura</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MIN_OPT">Minima Ottimale</span> (°C):</label><input type="number" step="0.1" id="cfgTempMin"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MAX_OPT">Massima Ottimale</span> (°C):</label><input type="number" step="0.1" id="cfgTempMax"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_TEMP_OFFSET">Offset Calibrazione Sensore (°C)</span>:</label><input type="number" step="0.1" id="cfgTempOffset"></div>
+      <button class="btn btn-cyan" onclick="saveTempSettings()">💾 <span data-i18n="BTN_SAVE_TEMP">Salva Soglie Temperatura</span></button>
+    </div>
+    <!-- RELÈ -->
+    <div class="card">
+      <div class="card-title">💡 <span data-i18n="TITLE_RELAY_SCHEDULE">Timer & Polarità Relè</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_RELAY_POL_GPIO">Polarità Relè (GPIO 17)</span>:</label>
+        <select id="cfgRelayInv">
+          <option value="0" data-i18n="LABEL_ACTIVE_HIGH">Active High (Normale)</option>
+          <option value="1" data-i18n="LABEL_ACTIVE_LOW">Active Low (Invertito)</option>
+        </select>
+      </div>
+      <div class="flex-row">
+        <div class="form-group"><label><span data-i18n="LABEL_ON_TIME_LONG">Ora Accensione (ON)</span>:</label><input type="time" id="timeOn"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_OFF_TIME_LONG">Ora Spegnimento (OFF)</span>:</label><input type="time" id="timeOff"></div>
+      </div>
+      <button class="btn btn-cyan" onclick="saveRelaySettings()">💾 <span data-i18n="BTN_SAVE_RELAY">Salva Orario & Relè</span></button>
+    </div>
+    <!-- DATA & NTP -->
+    <div class="card">
+      <div class="card-title">⏰ <span data-i18n="TITLE_DATETIME_NTP">Configurazione Orario</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_TIMEZONE">Timezone Offset (es. 0, +1, -1, +2)</span>:</label><input type="text" id="cfgTimezone"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_FMT_HOUR_LONG">Formato Ora</span>:</label>
+        <select id="cfgFormatHour">
+          <option value="24" data-i18n="FMT_24H">24 ore</option>
+          <option value="12" data-i18n="FMT_12H">12 ore</option>
+        </select>
+      </div>
+      <div class="form-group"><label><span data-i18n="LABEL_FMT_DATE_LONG">Formato Data</span>:</label>
+        <select id="cfgDateFormat">
+          <option value="0" data-i18n="FMT_DDMMYYYY">GG/MM/AAAA</option>
+          <option value="1" data-i18n="FMT_MMDDYYYY">MM/GG/AAAA</option>
+          <option value="2" data-i18n="FMT_YYYYMMDD">AAAA/MM/GG</option>
+        </select>
+      </div>
+      <div class="form-group"><label><span data-i18n="LABEL_NTP1">Server NTP 1</span>:</label><input type="text" id="cfgNtp1"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_NTP2">Server NTP 2</span>:</label><input type="text" id="cfgNtp2"></div>
+      <div class="flex-row">
+        <button class="btn btn-outline" onclick="triggerNtpSync()">🌐 <span data-i18n="BTN_SYNC">Sincronizza</span></button>
+        <button class="btn btn-cyan" onclick="saveTimeSettings()">💾 <span data-i18n="BTN_SAVE_TIME">Salva Data & NTP</span></button>
+      </div>
+    </div>
+    <!-- WI-FI -->
+    <!-- WI-FI -->
+    <div class="card">
+      <div class="card-title">📶 <span data-i18n="TITLE_WIFI_LANG">Credenziali Wi-Fi</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_WIFI_SSID">SSID Wi-Fi</span>:</label><input type="text" id="cfgWifiSsid"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_WIFI_PASS">Password Wi-Fi</span>:</label><input type="password" id="cfgWifiPass" data-i18n-placeholder="MSG_UNCHANGED_IF_EMPTY" placeholder="(invariata se vuoto)"></div>
+      <button class="btn btn-emerald" onclick="saveWifiSettings()">📶 <span data-i18n="BTN_SAVE_WIFI">Salva & Connetti Wi-Fi</span></button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔧 <span data-i18n="TITLE_ADV_NET">Rete Avanzata (IP Statico)</span></div>
+      <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px"><span data-i18n="MSG_DHCP_HINT">Lascia 0.0.0.0 per DHCP automatico</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_STATIC_IP">IP Statico</span>:</label><input type="text" id="cfgWifiIp"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_SUBNET">Subnet Mask</span>:</label><input type="text" id="cfgWifiSubnet"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_GATEWAY">Gateway</span>:</label><input type="text" id="cfgWifiGateway"></div>
+      <div class="flex-row">
+        <div class="form-group"><label><span data-i18n="LABEL_DNS1">DNS 1</span>:</label><input type="text" id="cfgWifiDns1"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_DNS2">DNS 2</span>:</label><input type="text" id="cfgWifiDns2"></div>
+      </div>
+      <button class="btn btn-cyan" onclick="saveNetworkSettings()">💾 <span data-i18n="BTN_SAVE_ADV_NET">Salva Rete Avanzata</span></button>
+    </div>
+    <!-- MQTT -->
+    <div class="card">
+      <div class="card-title">📡 <span data-i18n="TITLE_MQTT">Configurazione MQTT</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MQTT_SERVER">Server MQTT</span>:</label><input type="text" id="cfgMqttServer"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MQTT_PORT">Porta MQTT</span>:</label><input type="number" id="cfgMqttPort" min="1" max="65535"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MQTT_USER">Utente MQTT</span>:</label><input type="text" id="cfgMqttUser"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_MQTT_PASS">Password MQTT</span>:</label><input type="password" id="cfgMqttPass" data-i18n-placeholder="MSG_UNCHANGED_IF_EMPTY" placeholder="(invariata se vuoto)"></div>
+      <button class="btn btn-cyan" onclick="saveMqttSettings()">💾 <span data-i18n="BTN_SAVE_MQTT">Salva Impostazioni MQTT</span></button>
+    </div>
+    <!-- SISTEMA -->
+    <!-- SISTEMA -->
+    <div class="card">
+      <div class="card-title">⚙️ <span data-i18n="TITLE_SYSTEM_SETTINGS">Impostazioni di Sistema</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_SELECT_LANG">Lingua Interfaccia</span>:</label><select id="cfgLangFile"><option value="english.lng">English</option><option value="italian.lng">Italiano</option></select></div>
+      <button class="btn btn-gold" onclick="saveLanguageSetting()">🌐 <span data-i18n="BTN_APPLY_LANG">Cambia Lingua (Riavvia ESP32)</span></button>
+      <hr class="divider">
+      <div class="form-group"><label><span data-i18n="LABEL_DEBUG_SERIAL">Modalità Debug Seriale</span>:</label>
+        <select id="cfgDebug">
+          <option value="false" data-i18n="OPT_DISABLED">Disattivato</option>
+          <option value="true" data-i18n="OPT_ENABLED">Attivato</option>
+        </select>
+      </div>
+      <div class="form-group"><label><span data-i18n="LABEL_SCREEN_MODE">Rotazione Schermo (screen_mode 0-3)</span>:</label>
+        <select id="cfgScreenMode">
+          <option value="3" data-i18n="OPT_MODE3">Rotazione 1</option>
+          <option value="1" data-i18n="OPT_MODE1">Rotazione 2</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" onclick="saveSystemSettings()">💾 <span data-i18n="BTN_SAVE_SYS">Salva Impostazioni Sistema</span></button>
+    </div>
+    <div class="card">
+      <div class="card-title">🌙 <span data-i18n="TITLE_SCREENSAVER">Risparmio Energia (Screensaver)</span></div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px"><span data-i18n="MSG_SCREENSAVER_HINT">Lo schermo LCD si spegne dopo il periodo di inattività. Tocca il display per riattivarlo.</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_SCREENSAVER">Spegni schermo dopo:</span></label>
+        <select id="cfgScreensaver">
+          <option value="0" data-i18n="LABEL_NEVER">MAI (Disattivato)</option>
+          <option value="30" data-i18n-suffix="LABEL_SEC_SUFFIX">30 sec</option>
+          <option value="60" data-i18n-suffix="LABEL_MIN_SUFFIX">1 min</option>
+          <option value="120" data-i18n-suffix="LABEL_MIN_SUFFIX">2 min</option>
+          <option value="180" data-i18n-suffix="LABEL_MIN_SUFFIX">3 min</option>
+          <option value="240" data-i18n-suffix="LABEL_MIN_SUFFIX">4 min</option>
+          <option value="300" data-i18n-suffix="LABEL_MIN_SUFFIX">5 min</option>
+          <option value="360" data-i18n-suffix="LABEL_MIN_SUFFIX">6 min</option>
+          <option value="420" data-i18n-suffix="LABEL_MIN_SUFFIX">7 min</option>
+          <option value="480" data-i18n-suffix="LABEL_MIN_SUFFIX">8 min</option>
+          <option value="540" data-i18n-suffix="LABEL_MIN_SUFFIX">9 min</option>
+          <option value="600" data-i18n-suffix="LABEL_MIN_SUFFIX">10 min</option>
+          <option value="900" data-i18n-suffix="LABEL_MIN_SUFFIX">15 min</option>
+          <option value="1200" data-i18n-suffix="LABEL_MIN_SUFFIX">20 min</option>
+          <option value="1800" data-i18n-suffix="LABEL_MIN_SUFFIX">30 min</option>
+          <option value="2700" data-i18n-suffix="LABEL_MIN_SUFFIX">45 min</option>
+          <option value="3600" data-i18n-suffix="LABEL_MIN_SUFFIX">60 min</option>
+        </select>
+      </div>
+      <button class="btn btn-cyan" onclick="saveScreensaverSettings()">💾 <span data-i18n="BTN_SAVE_SCREENSAVER">Salva Risparmio Energia</span></button>
+    </div>
+    <!-- EDITOR RAW -->
+    <div class="card full-width">
+      <div class="card-title">📁 <span data-i18n="TITLE_RAW_CFG">File di Configurazione SD (/config.cfg)</span></div>
+      <textarea id="rawConfigText" placeholder="Caricamento file config.cfg su SD in corso..."></textarea>
+      <div class="flex-row" style="margin-top:10px">
+        <button class="btn btn-outline" onclick="loadRawConfig()">🔄 <span data-i18n="BTN_RELOAD_SD">Ricarica da SD</span></button>
+        <button class="btn btn-cyan" onclick="saveRawConfig()">💾 <span data-i18n="BTN_SAVE_SD">Salva Modifiche Dirette su SD</span></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div id="toast" class="toast">Salvato!</div>
+<script>
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg || 'Salvato!';
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  const DATE_FMTS = ['GG/MM/AAAA','MM/GG/AAAA','AAAA/MM/GG'];
+
+  let currentAppliedLang = "";
+  let i18nDict = {};
+
+  async function loadTranslations(langFile) {
+    let dictStr = sessionStorage.getItem('lang_' + langFile);
+    if (!dictStr) {
+      try {
+        const res = await fetch('/api/lang');
+        dictStr = await res.text();
+        sessionStorage.setItem('lang_' + langFile, dictStr);
+      } catch(e) { console.error(e); return; }
+    }
+    try {
+      i18nDict = JSON.parse(dictStr);
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18nDict[key]) el.innerText = i18nDict[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (i18nDict[key]) el.placeholder = i18nDict[key];
+      });
+      document.querySelectorAll('[data-i18n-suffix]').forEach(el => {
+        const key = el.getAttribute('data-i18n-suffix');
+        if (i18nDict[key]) el.innerText = el.innerText.split(' ')[0] + ' ' + i18nDict[key];
+      });
+    } catch(e) {}
+  }
+
+  async function updateStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const d = await res.json();
+      
+      if (currentAppliedLang !== d.lang_file) {
+        await loadTranslations(d.lang_file);
+        currentAppliedLang = d.lang_file;
+      }
+      
+      document.getElementById('ipAddr').innerText = d.ip || '--';
+      document.getElementById('langNameHeader').innerText = d.lang_name || '--';
+      document.getElementById('fwVersion').innerText = d.version || '--';
+      document.getElementById('wifiStatusBadge').innerText = 'Wi-Fi: ' + (d.wifi_ssid || '--');
+      document.getElementById('tempVal').innerText = parseFloat(d.temp).toFixed(1) + ' C';
+      document.getElementById('tempStatus').innerText = d.temp_status || '--';
+      document.getElementById('statTempMin').innerText = parseFloat(d.temp_min).toFixed(1) + ' C';
+      document.getElementById('statTempMax').innerText = parseFloat(d.temp_max).toFixed(1) + ' C';
+      document.getElementById('statTempOff').innerText = parseFloat(d.temp_offset).toFixed(1) + ' C';
+      const lightEl = document.getElementById('lightStatus');
+      lightEl.innerText = d.light_status || '--';
+      lightEl.style.color = d.light_on ? 'var(--gold)' : 'var(--text-muted)';
+      document.getElementById('statMode').innerText = d.auto_sched ? (i18nDict['MSG_AUTO'] || 'AUTO (Timer)') : (i18nDict['MSG_MANUAL'] || 'MANUALE');
+      document.getElementById('statOnTime').innerText = pad(d.light_on_h) + ':' + pad(d.light_on_m);
+      document.getElementById('statOffTime').innerText = pad(d.light_off_h) + ':' + pad(d.light_off_m);
+      document.getElementById('statRelay').innerText = d.relay_inv ? (i18nDict['LABEL_ACTIVE_LOW'] || 'Active Low') : (i18nDict['LABEL_ACTIVE_HIGH'] || 'Active High');
+      document.getElementById('liveTime').innerText = d.time || '00:00:00';
+      document.getElementById('liveDate').innerText = d.date || '--';
+      document.getElementById('statTz').innerText = 'UTC' + (d.timezone >= 0 ? '+' : '') + d.timezone;
+      document.getElementById('statFmtHour').innerText = d.format_hour + 'h';
+      document.getElementById('statFmtDate').innerText = DATE_FMTS[d.date_format] || '--';
+      document.getElementById('statNtp1').innerText = d.ntp_server1 || '--';
+      const active = document.activeElement;
+      if (!active || active.tagName !== 'INPUT') {
+        document.getElementById('cfgTempMin').value = parseFloat(d.temp_min).toFixed(1);
+        document.getElementById('cfgTempMax').value = parseFloat(d.temp_max).toFixed(1);
+        document.getElementById('cfgTempOffset').value = parseFloat(d.temp_offset).toFixed(1);
+        document.getElementById('cfgRelayInv').value = d.relay_inv ? '1' : '0';
+        document.getElementById('timeOn').value = pad(d.light_on_h) + ':' + pad(d.light_on_m);
+        document.getElementById('timeOff').value = pad(d.light_off_h) + ':' + pad(d.light_off_m);
+        document.getElementById('cfgTimezone').value = d.timezone;
+        document.getElementById('cfgFormatHour').value = d.format_hour;
+        document.getElementById('cfgDateFormat').value = d.date_format;
+        document.getElementById('cfgNtp1').value = d.ntp_server1;
+        document.getElementById('cfgNtp2').value = d.ntp_server2;
+        document.getElementById('cfgWifiSsid').value = d.wifi_ssid;
+        document.getElementById('cfgWifiIp').value = d.wifi_ip_static || '0.0.0.0';
+        document.getElementById('cfgWifiSubnet').value = d.wifi_subnet || '0.0.0.0';
+        document.getElementById('cfgWifiGateway').value = d.wifi_gateway || '0.0.0.0';
+        document.getElementById('cfgWifiDns1').value = d.wifi_dns1 || '0.0.0.0';
+        document.getElementById('cfgWifiDns2').value = d.wifi_dns2 || '0.0.0.0';
+        document.getElementById('cfgMqttServer').value = d.mqtt_server || '';
+        document.getElementById('cfgMqttPort').value = d.mqtt_port || 1883;
+        document.getElementById('cfgMqttUser').value = d.mqtt_user || '';
+        document.getElementById('cfgLangFile').value = d.lang_file || 'english.lng';
+        document.getElementById('cfgDebug').value = d.debug ? 'true' : 'false';
+        document.getElementById('cfgScreenMode').value = d.screen_mode || 1;
+        document.getElementById('cfgScreensaver').value = d.screensaver_t || 0;
+      }
+    } catch(e) { console.error('API Error:', e); }
+  }
+
+  async function toggleLight() { await fetch('/api/light/toggle',{method:'POST'}); updateStatus(); }
+  async function toggleAuto()  { await fetch('/api/auto/toggle', {method:'POST'}); updateStatus(); }
+
+  async function saveTempSettings() {
+    const b = 'min_t='+document.getElementById('cfgTempMin').value+'&max_t='+document.getElementById('cfgTempMax').value+'&offset='+document.getElementById('cfgTempOffset').value;
+    await fetch('/api/settings/temp',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveRelaySettings() {
+    const inv=document.getElementById('cfgRelayInv').value;
+    const on=document.getElementById('timeOn').value.split(':');
+    const off=document.getElementById('timeOff').value.split(':');
+    const b='relay_inv='+inv+'&on_h='+on[0]+'&on_m='+on[1]+'&off_h='+off[0]+'&off_m='+off[1];
+    await fetch('/api/settings/relay',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveTimeSettings() {
+    const b='timezone='+encodeURIComponent(document.getElementById('cfgTimezone').value)+'&format_hour='+document.getElementById('cfgFormatHour').value+'&date_format='+document.getElementById('cfgDateFormat').value+'&ntp1='+encodeURIComponent(document.getElementById('cfgNtp1').value)+'&ntp2='+encodeURIComponent(document.getElementById('cfgNtp2').value);
+    await fetch('/api/settings/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function triggerNtpSync() { await fetch('/api/ntp/sync',{method:'POST'}); showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus(); }
+  async function saveWifiSettings() {
+    const b='ssid='+encodeURIComponent(document.getElementById('cfgWifiSsid').value)+'&pass='+encodeURIComponent(document.getElementById('cfgWifiPass').value);
+    await fetch('/api/settings/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveNetworkSettings() {
+    const b='ip='+encodeURIComponent(document.getElementById('cfgWifiIp').value)+'&subnet='+encodeURIComponent(document.getElementById('cfgWifiSubnet').value)+'&gateway='+encodeURIComponent(document.getElementById('cfgWifiGateway').value)+'&dns1='+encodeURIComponent(document.getElementById('cfgWifiDns1').value)+'&dns2='+encodeURIComponent(document.getElementById('cfgWifiDns2').value);
+    await fetch('/api/settings/network',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveMqttSettings() {
+    const b='server='+encodeURIComponent(document.getElementById('cfgMqttServer').value)+'&port='+document.getElementById('cfgMqttPort').value+'&user='+encodeURIComponent(document.getElementById('cfgMqttUser').value)+'&pass='+encodeURIComponent(document.getElementById('cfgMqttPass').value);
+    await fetch('/api/settings/mqtt',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveLanguageSetting() {
+    showToast(i18nDict['BTN_APPLY_LANG'] || 'Restarting...');
+    await fetch('/api/settings/language',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'lang_file='+encodeURIComponent(document.getElementById('cfgLangFile').value)});
+    setTimeout(()=>{location.reload();},3500);
+  }
+  async function saveSystemSettings() {
+    const b='debug='+document.getElementById('cfgDebug').value+'&screen_mode='+document.getElementById('cfgScreenMode').value;
+    await fetch('/api/settings/system',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveScreensaverSettings() {
+    await fetch('/api/settings/screensaver',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'screensaver_t='+document.getElementById('cfgScreensaver').value});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function loadRawConfig() {
+    try { document.getElementById('rawConfigText').value = await (await fetch('/api/config/raw')).text(); }
+    catch(e) { console.error('Config load error'); }
+  }
+  async function saveRawConfig() {
+    const res = await fetch('/api/config/raw',{method:'POST',headers:{'Content-Type':'text/plain'},body:document.getElementById('rawConfigText').value});
+    if(res.ok){showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();}
+  }
+  updateStatus();
+  setTimeout(loadRawConfig, 600);
+  setInterval(updateStatus, 3000);
+</script>
+</body>
+</html>

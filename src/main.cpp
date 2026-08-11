@@ -19,21 +19,6 @@ XPT2046_Touchscreen touch(TOUCH_CS, TOUCH_IRQ);
 AppConfig cfg;
 uint16_t physW = 320, physH = 240;
 unsigned long lastTouchLog = 0;
-#define DBG_PRINT(x)                                                           \
-  do {                                                                         \
-    if (cfg.debug)                                                             \
-      Serial.print(x);                                                         \
-  } while (0)
-#define DBG_PRINTLN(x)                                                         \
-  do {                                                                         \
-    if (cfg.debug)                                                             \
-      Serial.println(x);                                                       \
-  } while (0)
-#define DBG_PRINTF(...)                                                        \
-  do {                                                                         \
-    if (cfg.debug)                                                             \
-      Serial.printf(__VA_ARGS__);                                              \
-  } while (0)
 
 void backlightOn() {
   pinMode(TFT_BL, OUTPUT);
@@ -277,6 +262,8 @@ String buildConfigText() {
 }
 
 bool g_loadingConfig = false;
+SemaphoreHandle_t g_configMutex = NULL;
+volatile bool g_saveConfigNeeded = false;
 
 bool writeWholeConfigFileSafe() {
   if (g_loadingConfig)
@@ -638,12 +625,13 @@ void drawSummary(const char *stateMsg) {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawString("CONFIG SD", 10, 10, 4);
   tft.drawString(stateMsg, 10, 40, 2);
+  xSemaphoreTake(g_configMutex, portMAX_DELAY);
   tft.drawString("mode=" + String(cfg.screenMode), 10, 65, 2);
   tft.drawString("ssid=" + cfg.wifiSsid, 10, 90, 2);
   tft.drawString("city=" + cfg.weatherCity, 10, 115, 2);
-  tft.drawString("mqtt=" + cfg.mqttServer + ":" + String(cfg.mqttPort), 10, 140,
-                 2);
+  tft.drawString("mqtt=" + cfg.mqttServer + ":" + String(cfg.mqttPort), 10, 140, 2);
   tft.drawString("ora=" + String(cfg.formatHour) + "h", 10, 165, 2);
+  xSemaphoreGive(g_configMutex);
   tft.drawRect(0, 0, physW - 1, physH - 1, TFT_GREEN);
 }
 
@@ -745,6 +733,8 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(1000);
   Serial.println("\n\n=== BOOTING ===");
+  g_configMutex = xSemaphoreCreateMutex();
+  
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
 
@@ -861,5 +851,11 @@ void loop() {
     aquarium.update();
   }
   aquariumServer.update();
+  
+  if (g_saveConfigNeeded) {
+    writeWholeConfigFileSafe();
+    g_saveConfigNeeded = false;
+  }
+  
   delay(5);
 }

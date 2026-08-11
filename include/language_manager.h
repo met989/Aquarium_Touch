@@ -3,8 +3,10 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include <map>
 #include "config.h"
+
+// Forward declaration
+struct EmbeddedLanguage;
 
 struct LangItem {
   String filename; // e.g. "english.lng" or "/languages/english.lng"
@@ -23,6 +25,7 @@ public:
 
   int getAvailableLanguageCount() const { return m_langCount; }
   LangItem getAvailableLanguage(int idx) const;
+  const EmbeddedLanguage* getActiveLang() const { return m_activeLang; }
 
   const char* getText(const char* key, const char* fallback = nullptr);
 
@@ -33,7 +36,7 @@ private:
   int m_langCount = 0;
   LangItem m_availableLangs[10];
 
-  std::map<String, String> m_dictionary;
+  const EmbeddedLanguage* m_activeLang = nullptr;
 };
 
 extern LanguageManager langManager;

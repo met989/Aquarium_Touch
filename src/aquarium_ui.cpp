@@ -752,7 +752,7 @@ void AquariumUI::drawSubScreenWifi() {
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
   GFX->drawString(langManager.getText("LABEL_STATUS", "STATUS:"), 14, 42, 2);
   GFX->setTextColor(statusCol, COLOR_CARD_BG);
-  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 58, 42, 2);
+  GFX->drawString(conn ? langManager.getText("MSG_CONNECTED", "CONNECTED") : langManager.getText("MSG_DISCONNECTED", "DISCONNECTED"), 66, 42, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
   GFX->drawString("IP:", 160, 42, 2);
@@ -871,13 +871,12 @@ void AquariumUI::drawSubScreenLanguage() {
       GFX->setTextDatum(TL_DATUM);
       GFX->setTextColor(isSelected ? COLOR_GOLD_ACCENT : TFT_WHITE, COLOR_CARD_BG);
       String label = String(i + 1) + ". " + item.name;
-      if (isSelected) label += "  [" + String(langManager.getText("LABEL_ACTIVE_LANG", "ACTIVE")) + "]";
       GFX->drawString(label.c_str(), 16, cardY + 11, 2);
 
       if (isSelected) {
         GFX->setTextDatum(TR_DATUM);
         GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-        GFX->drawString("v", 300, cardY + 11, 2);
+        GFX->drawString("<-", 300, cardY + 11, 2);
       }
     }
   }

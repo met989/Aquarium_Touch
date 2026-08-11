@@ -34,12 +34,18 @@ int AquariumLogic::getWifiRSSI() const {
 extern AppConfig cfg;
 
 String AquariumLogic::getWifiConnectSSID() const {
-  return cfg.wifiSsid;
+  xSemaphoreTake(g_configMutex, portMAX_DELAY);
+  String s = m_wifiConnectSSID;
+  xSemaphoreGive(g_configMutex);
+  return s;
 }
 
 void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) {
+  xSemaphoreTake(g_configMutex, portMAX_DELAY);
   cfg.wifiSsid = ssid;
   cfg.wifiPassword = password;
+  m_wifiConnectSSID = ssid;
+  xSemaphoreGive(g_configMutex);
 
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(true);
@@ -444,7 +450,8 @@ void AquariumLogic::setScreensaverTime(uint16_t seconds) {
 
 
 bool AquariumLogic::saveConfigSD() {
-  return writeWholeConfigFileSafe();
+  g_saveConfigNeeded = true;
+  return true;
 }
 
 

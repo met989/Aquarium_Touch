@@ -152,6 +152,27 @@ struct AppConfig {
   int formatHour;
   bool debug;
 };
+
+extern AppConfig cfg;
+extern SemaphoreHandle_t g_configMutex;
+extern volatile bool g_saveConfigNeeded;
+
+#define DBG_PRINT(x)                                                           \
+  do {                                                                         \
+    if (cfg.debug)                                                             \
+      Serial.print(x);                                                         \
+  } while (0)
+#define DBG_PRINTLN(x)                                                         \
+  do {                                                                         \
+    if (cfg.debug)                                                             \
+      Serial.println(x);                                                       \
+  } while (0)
+#define DBG_PRINTF(...)                                                        \
+  do {                                                                         \
+    if (cfg.debug)                                                             \
+      Serial.printf(__VA_ARGS__);                                              \
+  } while (0)
+
 #endif
 
 

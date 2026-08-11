@@ -136,6 +136,7 @@ private:
   WifiNetworkItem m_scannedNetworks[12];
 
   WifiConnectState m_wifiConnectState = WIFI_CONN_IDLE;
+  String m_wifiConnectSSID;
   uint32_t m_wifiConnectStartTime = 0;
   uint32_t m_wifiConnectResultTime = 0;
 };
