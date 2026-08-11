@@ -276,6 +276,14 @@ Il progetto è in continua evoluzione. Le prossime funzionalità e integrazioni 
 
 ---
 
+## ☕ Supporta il Progetto
+
+Se questo firmware ti è stato utile per il tuo acquario o semplicemente apprezzi il lavoro open-source, puoi sostenere lo sviluppo offrendomi un caffè virtuale! ❤️
+
+[![Offrimi un caffè con PayPal](https://img.shields.io/badge/Offrimi_un_caffè-PayPal-00457C.svg?style=for-the-badge&logo=paypal)](https://paypal.me/MatteoSacanna)
+
+---
+
 ## 📝 Manutenzione del README
 
 > **REGOLE PER GLI AGENTI AI & SVILUPPATORI:**

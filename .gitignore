@@ -5,3 +5,6 @@
 .vscode/ipch
 compile_commands.json
 
+# Build outputs
+release/
+*.bin
