@@ -262,6 +262,22 @@ Le configurazioni del sistema seguono una rigorosa gerarchia:
   pio run --target monitor
   ```
 
+### ⚡ Automazioni e Script Forniti
+Per semplificare la gestione e la distribuzione del firmware, il progetto include due comodi script pronti all'uso:
+
+- **`publish_release.bat` (Pubblicazione Automatica su GitHub):**
+  Un tool che automatizza il rilascio delle nuove versioni sfruttando GitHub Actions.
+  *Come usarlo:*
+  1. Aggiorna il numero di versione in `include/config.h` (es. `0.6.1`).
+  2. Salva il progetto e invia le modifiche a GitHub usando `push.bat`.
+  3. Avvia `publish_release.bat`. Lo script creerà un tag invisibile e dirà a GitHub di avviare i suoi server, i quali compileranno il codice, pubblicheranno la Release ufficiale e scriveranno da soli il Changelog basandosi sulle tue ultime modifiche!
+
+- **`flash.bat` (Flasher Nativo Offline):**
+  Un'utility utilissima per flashare i file `.bin` (presenti nella cartella `release/`) direttamente sulla scheda, **senza bisogno di avere né PlatformIO né Python installati**. Ideale per distribuire l'aggiornamento a chiunque.
+  *Come usarlo:*
+  1. Collega la scheda via USB e avvia `flash.bat`.
+  2. Segui le comodissime istruzioni a schermo (PowerShell): lo script ti farà selezionare il file `.bin` dal più recente al più vecchio, rileverà automaticamente su quale porta COM è attaccata la scheda e in pochi secondi effettuerà il flash (utilizzando l'eseguibile ufficiale di Espressif incluso nella cartella `tools`).
+
 ---
 
 ## 🔮 Sviluppi Futuri (Roadmap)
