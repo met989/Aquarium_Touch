@@ -7,4 +7,3 @@ echo.
 python publish_release.py
 
 echo.
-pause
