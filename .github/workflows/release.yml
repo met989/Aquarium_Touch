@@ -1,0 +1,39 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Si avvia solo quando viene pushato un tag che inizia per "v" (es. v0.5)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # Permessi necessari per creare la Release su GitHub
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout del codice
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Installazione PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+
+    - name: Compilazione del Progetto
+      run: pio run
+
+    - name: Creazione Release e caricamento Firmware
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release/*.bin
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
