@@ -26,6 +26,13 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 
 ### 🖼️ Anteprime dell'Interfaccia
 
+![Dashboard](scheme/1.jpeg)
+![Luce](scheme/2.jpeg)
+![Programmazione](scheme/3.jpeg)
+![Impostazioni](scheme/4.jpeg)
+
+**Video Dimostrativo:**
+![Video Demo](scheme/video.gif)
 
 ---
 
