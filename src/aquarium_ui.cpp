@@ -118,6 +118,19 @@ void AquariumUI::updateAnimations() {
 void AquariumUI::update() {
   aquarium.update();
 
+  if (!m_bootCheckStarted && aquarium.isWifiConnected()) {
+    m_bootCheckStarted = true;
+    xTaskCreate([](void *pvParameters) {
+      String ver, url;
+      if (aquarium.checkGitHubForUpdate(ver, url)) {
+        aquariumUI.setLatestVersion(ver, url);
+      } else {
+        aquariumUI.setLatestVersion(AQUARIUM_OS_VERSION, "");
+      }
+      vTaskDelete(NULL);
+    }, "otaBootCheck", 8192, NULL, 1, NULL);
+  }
+
   uint8_t currentCounter = aquarium.getWifiScanCounter();
   if (m_lastWifiScanCounter != currentCounter) {
     m_lastWifiScanCounter = currentCounter;
@@ -892,29 +905,67 @@ void AquariumUI::drawSubScreenVersion() {
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_BG_OCEAN);
   GFX->drawString(langManager.getText("TITLE_SYS_VERSION", "SYSTEM INFORMATION"), 190, 10, 2);
 
-  // Enlarged Version Info Card (X: 10, Y: 40, W: 300, H: 172)
-  drawGlassCard(10, 40, 300, 172, COLOR_CARD_BORDER);
+  if (m_isUpdating) {
+    drawGlassCard(10, 40, 300, 172, COLOR_CARD_BORDER);
+    GFX->setTextDatum(MC_DATUM);
+    GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
+    GFX->drawString("Aggiornamento in corso...", 160, 100, 2);
+    GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+    GFX->drawString("Non spegnere il dispositivo", 160, 140, 2);
+    return;
+  }
+
+  if (m_isCheckingUpdate) {
+    drawGlassCard(10, 40, 300, 172, COLOR_CARD_BORDER);
+    GFX->setTextDatum(MC_DATUM);
+    GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
+    GFX->drawString("Controllo in corso...", 160, 100, 2);
+    return;
+  }
+
+  if (m_showUpdatePrompt) {
+    drawGlassCard(10, 40, 300, 172, COLOR_CARD_BORDER);
+    GFX->setTextDatum(MC_DATUM);
+    GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
+    GFX->drawString("Vuoi aggiornare alla versione:", 160, 70, 2);
+    GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
+    GFX->drawString(m_latestVersion, 160, 100, 4); 
+    
+    drawTouchButton(30, 140, 110, 40, "SI", COLOR_EMERALD_GREEN, TFT_WHITE, COLOR_EMERALD_GREEN);
+    drawTouchButton(180, 140, 110, 40, "NO", COLOR_CORAL_RED, TFT_WHITE, COLOR_CORAL_RED);
+    return;
+  }
+
+  // Enlarged Version Info Card (X: 10, Y: 40, W: 300, H: 130)
+  drawGlassCard(10, 40, 300, 130, COLOR_CARD_BORDER);
 
   GFX->setTextDatum(TL_DATUM);
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_SYS_NAME", "FIRMWARE:"), 20, 56, 2);
+  GFX->drawString(langManager.getText("LABEL_SYS_NAME", "FIRMWARE:"), 20, 50, 2);
   GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
-  GFX->drawString("AQUARIUM OS", 105, 56, 2);
+  GFX->drawString("AQUARIUM OS", 105, 50, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_OS_VER", "VERSION:"), 20, 90, 2);
+  GFX->drawString(langManager.getText("LABEL_OS_VER", "VERSION:"), 20, 80, 2);
   GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
-  GFX->drawString(AQUARIUM_OS_VERSION, 105, 90, 4);
+  GFX->drawString(AQUARIUM_OS_VERSION, 105, 80, 4);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_FRAMEWORK", "FRAMEWORK:"), 20, 132, 2);
+  GFX->drawString(langManager.getText("LABEL_FRAMEWORK", "FRAMEWORK:"), 20, 115, 2);
   GFX->setTextColor(COLOR_EMERALD_GREEN, COLOR_CARD_BG);
-  GFX->drawString("ESP32 Arduino / PlatformIO", 105, 132, 2);
+  GFX->drawString("ESP32 Arduino", 105, 115, 2);
 
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
-  GFX->drawString(langManager.getText("LABEL_HARDWARE", "HARDWARE:"), 20, 164, 2);
+  GFX->drawString(langManager.getText("LABEL_HARDWARE", "HARDWARE:"), 20, 140, 2);
   GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
-  GFX->drawString("ESP32-DEV 240MHz 4MB", 105, 164, 2);
+  GFX->drawString("ESP32-DEV 240MHz", 105, 140, 2);
+
+  bool hasUpdate = (m_latestVersion != "" && m_latestVersion != String(AQUARIUM_OS_VERSION));
+  if (hasUpdate) {
+    drawTouchButton(10, 176, 300, 36, "AGGIORNA VERSIONE", COLOR_CARD_BG, TFT_WHITE, COLOR_CYAN_GLOW);
+  } else {
+    drawTouchButton(10, 176, 300, 36, "VERIFICA AGGIORNAMENTI", COLOR_CARD_BG, TFT_WHITE, COLOR_GOLD_ACCENT);
+  }
 }
 
 void AquariumUI::drawSubScreenEnergySaving() {
@@ -1335,6 +1386,44 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                 m_wifiShowKeyboard = true;
               }
               m_settingsNeedsRedraw = true;
+            }
+          }
+        }
+      } else if (m_settingsSubScreen == 5) {
+        if (m_isUpdating) return; // Block touches during update
+        // Sub 5: System Info (Update Version)
+        if (m_showUpdatePrompt) {
+          // YES (X: 30..140, Y: 140..180)
+          if (touchX >= 30 && touchX <= 140 && sy >= 140 && sy <= 180) {
+            m_showUpdatePrompt = false;
+            m_isUpdating = true;
+            m_settingsNeedsRedraw = true;
+            drawSettingsSubScreen(5); // Force draw update loading immediately
+            aquarium.performOTAUpdate(m_latestVersionUrl);
+            m_isUpdating = false;
+          }
+          // NO (X: 180..290, Y: 140..180)
+          else if (touchX >= 180 && touchX <= 290 && sy >= 140 && sy <= 180) {
+            m_showUpdatePrompt = false;
+            m_settingsNeedsRedraw = true;
+          }
+        } else {
+          // Update/Verify Button (X: 10..310, Y: 176..212)
+          if (touchX >= 10 && touchX <= 310 && sy >= 176 && sy <= 212) {
+            if (m_latestVersion != "" && m_latestVersion != String(AQUARIUM_OS_VERSION)) {
+              m_showUpdatePrompt = true;
+              m_settingsNeedsRedraw = true;
+            } else {
+              m_isCheckingUpdate = true;
+              m_settingsNeedsRedraw = true;
+              drawSettingsSubScreen(5); // Draw "Controllo in corso..."
+              
+              String ver, url;
+              if (aquarium.checkGitHubForUpdate(ver, url)) {
+                setLatestVersion(ver, url);
+              } else {
+                setLatestVersion(AQUARIUM_OS_VERSION, "");
+              }
             }
           }
         }

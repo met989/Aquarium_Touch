@@ -61,6 +61,9 @@ public:
   void toggleRelayInverted();
   void setAutoSchedule(bool enable);
 
+  // OTA Update
+  bool checkGitHubForUpdate(String& outVersion, String& outUrl);
+  void performOTAUpdate(const String& url);
 
   // WiFi Management Methods
   bool isWifiConnected() const;

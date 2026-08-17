@@ -39,6 +39,12 @@ public:
   UiTab getActiveTab() const { return m_activeTab; }
   void setTab(UiTab tab);
 
+  void setLatestVersion(const String& ver, const String& url) {
+    m_latestVersion = ver;
+    m_latestVersionUrl = url;
+    m_hasCheckedUpdate = true;
+    m_isCheckingUpdate = false;
+  }
   
 private:
   void initAnimations();
@@ -94,6 +100,13 @@ private:
   bool m_wifiHidePassword = true;
   int m_kbLayoutMode = 0; // 0 = abc (lower), 1 = ABC (upper), 2 = 123/sym (numbers)
   int m_resetStep = 0;
+  bool m_showUpdatePrompt = false;
+  String m_latestVersionUrl = "";
+  String m_latestVersion = "";
+  bool m_hasCheckedUpdate = false;
+  bool m_isCheckingUpdate = false;
+  bool m_bootCheckStarted = false;
+  bool m_isUpdating = false;
   int m_screensaverIdx = 0; // index into screensaver time table
 
 

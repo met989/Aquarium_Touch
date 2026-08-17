@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-$toolsDir = Join-Path $PSScriptRoot "tools"
+$rootDir = Split-Path $PSScriptRoot -Parent; $toolsDir = Join-Path $rootDir "tools"
 $esptoolPath = Join-Path $toolsDir "esptool.exe"
 
 Write-Host "========================================" -ForegroundColor Cyan
@@ -13,7 +13,7 @@ if (-not (Test-Path $esptoolPath)) {
 }
 
 # 2. Select firmware
-$releaseDir = Join-Path $PSScriptRoot "release"
+$releaseDir = Join-Path $rootDir "release"
 if (-not (Test-Path $releaseDir)) {
     Write-Host "Cartella 'release' non trovata. Nessun firmware da flashare." -ForegroundColor Red
     exit

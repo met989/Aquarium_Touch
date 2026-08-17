@@ -4,6 +4,11 @@
 #include <DallasTemperature.h>
 #include <SD.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <Update.h>
+#include <HTTPUpdate.h>
+#include <ArduinoJson.h>
 
 
 AquariumLogic aquarium;
@@ -454,5 +459,57 @@ bool AquariumLogic::saveConfigSD() {
   return true;
 }
 
+bool AquariumLogic::checkGitHubForUpdate(String& outVersion, String& outUrl) {
+  if (WiFi.status() != WL_CONNECTED) return false;
 
+  WiFiClientSecure client;
+  client.setInsecure(); // Ignore cert validation for simplicity
 
+  HTTPClient http;
+  if (http.begin(client, "https://api.github.com/repos/met989/Aquarium_Touch/releases/latest")) {
+    int httpCode = http.GET();
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (!error) {
+        if (doc["tag_name"].is<String>()) {
+          outVersion = doc["tag_name"].as<String>();
+          JsonArray assets = doc["assets"].as<JsonArray>();
+          for (JsonVariant v : assets) {
+            String name = v["name"].as<String>();
+            if (name == "firmware.bin") {
+              outUrl = v["browser_download_url"].as<String>();
+              http.end();
+              return true;
+            }
+          }
+        }
+      }
+    }
+    http.end();
+  }
+  return false;
+}
+
+void AquariumLogic::performOTAUpdate(const String& url) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  WiFiClientSecure client;
+  client.setInsecure();
+  
+  httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  t_httpUpdate_return ret = httpUpdate.update(client, url);
+  switch (ret) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+      break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("HTTP_UPDATE_NO_UPDATES");
+      break;
+    case HTTP_UPDATE_OK:
+      Serial.println("HTTP_UPDATE_OK");
+      ESP.restart();
+      break;
+  }
+}

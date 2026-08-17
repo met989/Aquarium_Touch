@@ -91,7 +91,7 @@
 // ------------------------------------------------------------------------------
 // 7. System Constants & File Paths
 // ------------------------------------------------------------------------------
-#define AQUARIUM_OS_VERSION "0.5.0-11082026-beta"
+#define AQUARIUM_OS_VERSION "0.5.0-17082026-beta"
 
 static const uint32_t SERIAL_BAUD = 115200;
 static const char *CONFIG_PATH = "/config.cfg";

@@ -4,6 +4,6 @@ echo Avvio procedura di Release su GitHub
 echo ========================================
 echo.
 
-python publish_release.py
+python "%~dp0scripts\publish_release.py"
 
 echo.
