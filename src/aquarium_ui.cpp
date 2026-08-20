@@ -1,12 +1,12 @@
-#include "aquarium_ui.h"
+#include "../include/aquarium_ui.h"
 
 #define GFX ((m_activeTab == TAB_SETTINGS) ? (TFT_eSPI*)m_tft : (TFT_eSPI*)m_sprite)
 
 
 #define GFX ((m_activeTab == TAB_SETTINGS) ? (TFT_eSPI*)m_tft : (TFT_eSPI*)m_sprite)
 
-#include "aquarium_logic.h"
-#include "language_manager.h"
+#include "../include/aquarium_logic.h"
+#include "../include/language_manager.h"
 #include "ff.h"
 #include <math.h>
 
@@ -495,9 +495,18 @@ void AquariumUI::drawSettingsMenu() {
       GFX->drawString(titleBuf, 160, 0, 2);
 
       if (m_settingsMenuPage == 1) {
+          const char* items_page2[] = {
+            "9. Hardware & I2C"
+          };
+          int btnWidth = 145;
+          int btnHeight = 40;
+          int startY = 24;
+          
+          GFX->fillRoundRect(10, startY, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
+          GFX->drawRoundRect(10, startY, btnWidth, btnHeight, 8, COLOR_CYAN_GLOW);
+          GFX->setTextColor(TFT_WHITE);
           GFX->setTextDatum(MC_DATUM);
-          GFX->setTextColor(COLOR_TEXT_MUTED);
-          GFX->drawString("Questa pagina e' ancora vuota", 160, 90, 2);
+          GFX->drawString(items_page2[0], 10 + btnWidth/2, startY + btnHeight/2, 2);
           return;
       }
 
@@ -590,6 +599,7 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         if (sub == 6) drawSubScreenLanguage();
         if (sub == 7) drawSubScreenEnergySaving();
         if (sub == 8) drawSubScreenFactoryReset();
+        if (sub == 9) drawSubScreenHardware();
     }
 }
 
@@ -1211,6 +1221,15 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                 return;
             }
         }
+      } else if (m_settingsSubScreen == 0 && m_settingsMenuPage == 1) {
+          int btnWidth = 145;
+          int btnHeight = 40;
+          int startY = 24;
+          if (touchX >= 10 && touchX <= 10 + btnWidth && sy >= startY && sy <= startY + btnHeight) {
+              m_settingsSubScreen = 9;
+              m_settingsNeedsRedraw = true;
+              return;
+          }
       } else if (m_settingsSubScreen == 1) {
         // Sub 1: Data & Ora (Updated for enlarged Y: 104..148 and 164..216)
         // Date Format Toggle Button (X: 10..310, sy: 104..148)
@@ -1487,6 +1506,25 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             m_settingsNeedsRedraw = true;
           }
         }
+      } else if (m_settingsSubScreen == 9) {
+        // Sub 9: Hardware Mapping
+        if (touchX >= 160 && touchX <= 200) { // Minus
+          if (sy >= 46 && sy <= 78) ::cfg.mcpPinLight = max(-1, (int)::cfg.mcpPinLight - 1);
+          if (sy >= 86 && sy <= 118) ::cfg.mcpPinWaterLevel = max(-1, (int)::cfg.mcpPinWaterLevel - 1);
+          m_settingsNeedsRedraw = true;
+          extern bool writeWholeConfigFileSafe();
+          writeWholeConfigFileSafe();
+        } else if (touchX >= 260 && touchX <= 300) { // Plus
+          if (sy >= 46 && sy <= 78) ::cfg.mcpPinLight = min(15, (int)::cfg.mcpPinLight + 1);
+          if (sy >= 86 && sy <= 118) ::cfg.mcpPinWaterLevel = min(15, (int)::cfg.mcpPinWaterLevel + 1);
+          m_settingsNeedsRedraw = true;
+          extern bool writeWholeConfigFileSafe();
+          writeWholeConfigFileSafe();
+        }
+        // Scan Button: (10, 204, 100, 32)
+        if (touchX >= 10 && touchX <= 110 && sy >= 204 && sy <= 236) {
+          m_settingsNeedsRedraw = true; // Triggers redraw which calls scanI2C()
+        }
       }
 
 
@@ -1498,3 +1536,49 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
 
 
 // Fin
+
+void AquariumUI::drawSubScreenHardware() {
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  
+  GFX->setTextColor(COLOR_CYAN_GLOW);
+  GFX->setTextDatum(TC_DATUM);
+  GFX->drawString("MAPPATURA HARDWARE & I2C", 190, 10, 2);
+
+  int yBase = 46;
+  int rowH = 40;
+  
+  auto drawRow = [&](int y, const char* label, int8_t pin) {
+    GFX->setTextColor(TFT_WHITE);
+    GFX->setTextDatum(ML_DATUM);
+    GFX->drawString(label, 10, y + 16, 2);
+    
+    // - Btn
+    drawTouchButton(160, y, 40, 32, "-", COLOR_CARD_BORDER, TFT_WHITE);
+    // Value
+    GFX->fillRoundRect(205, y, 50, 32, 4, COLOR_CARD_BG);
+    GFX->setTextColor(COLOR_CYAN_GLOW);
+    GFX->setTextDatum(MC_DATUM);
+    if (pin >= 0) {
+      GFX->drawString(String(pin), 230, y + 16, 2);
+    } else {
+      GFX->drawString("OFF", 230, y + 16, 2);
+    }
+    // + Btn
+    drawTouchButton(260, y, 40, 32, "+", COLOR_CARD_BORDER, TFT_WHITE);
+  };
+
+  drawRow(yBase, "PIN LUCE (0-15)", ::cfg.mcpPinLight);
+  drawRow(yBase + rowH, "PIN SENSORE LIV.", ::cfg.mcpPinWaterLevel);
+
+  // I2C Scanner Button and Result
+  drawTouchButton(10, 204, 100, 32, "SCAN I2C", COLOR_CARD_BORDER, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  
+  GFX->fillRoundRect(120, 204, 190, 32, 4, COLOR_CARD_BG);
+  GFX->setTextColor(COLOR_EMERALD_GREEN);
+  GFX->setTextDatum(ML_DATUM);
+  String i2cRes = aquarium.scanI2C();
+  if (i2cRes.length() > 22) {
+     i2cRes = i2cRes.substring(0, 20) + "..";
+  }
+  GFX->drawString(i2cRes, 125, 220, 2);
+}

@@ -45,8 +45,12 @@
 // ------------------------------------------------------------------------------
 #define SD_CS 5
 #define BOOT_BTN 0
-#define TEMP_SENSOR_PIN 4  // DS18B20 1-Wire Data Pin
-#define LIGHT_RELAY_PIN 17 // Aquarium Light Relay / MOSFET Output Pin
+// #define TEMP_SENSOR_PIN 27 // (Vecchia assegnazione)
+#define I2C_SDA_PIN 27     // I2C SDA per MCP23017 e DS2482
+#define I2C_SCL_PIN 22     // I2C SCL per MCP23017 e DS2482
+#define LED_RED_PIN 4      // LED Stato: Problema/Errore
+#define LED_GREEN_PIN 16   // LED Stato: Funzionante e Pronto
+#define LED_BLUE_PIN 17    // LED Stato: Caricamento all'avvio
 
 // ------------------------------------------------------------------------------
 // 4. TFT_eSPI Fonts & SPI Speeds
@@ -151,6 +155,10 @@ struct AppConfig {
   String mqttUser, mqttPassword;
   int formatHour;
   bool debug;
+  
+  // Mappatura Dinamica Pin MCP23017 (0-15, -1 se non assegnato)
+  int8_t mcpPinLight;       
+  int8_t mcpPinWaterLevel;  
 };
 
 extern AppConfig cfg;

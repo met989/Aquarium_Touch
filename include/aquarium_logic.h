@@ -84,6 +84,9 @@ public:
   void resetWifiConnectState() { m_wifiConnectState = WIFI_CONN_IDLE; }
   String getWifiConnectSSID() const;
 
+  // I2C Scanner
+  String scanI2C() const;
+
 
 
   // Time & Clock Methods

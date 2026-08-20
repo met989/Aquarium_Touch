@@ -30,6 +30,8 @@ private:
   void handleApiSetSystemSettings();
   void handleApiSetScreensaver();
   void handleApiSetLanguage();
+  void handleApiSetHardwareSettings();
+  void handleApiScanI2C();
   void handleApiConfigRawGet();
   void handleApiConfigRawPost();
 

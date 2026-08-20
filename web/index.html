@@ -184,7 +184,31 @@
       <div class="form-group"><label><span data-i18n="LABEL_MQTT_PASS">Password MQTT</span>:</label><input type="password" id="cfgMqttPass" data-i18n-placeholder="MSG_UNCHANGED_IF_EMPTY" placeholder="(invariata se vuoto)"></div>
       <button class="btn btn-cyan" onclick="saveMqttSettings()">💾 <span data-i18n="BTN_SAVE_MQTT">Salva Impostazioni MQTT</span></button>
     </div>
-    <!-- SISTEMA -->
+    <!-- HARDWARE & I2C -->
+    <div class="card">
+      <div class="card-title">🔌 <span>Mappatura Hardware (I2C)</span></div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px">Assegna le funzioni ai pin del chip MCP23017. L'indirizzo I2C base del chip è fisso a 0x20. Seleziona OFF per disabilitare.</div>
+      
+      <div class="flex-row" style="gap:10px; align-items:center;">
+          <div class="form-group" style="flex:1"><label>Pin Luce Principale:</label>
+            <select id="cfgMcpLight"><option value="-1">OFF</option><option value="0">Pin 0</option><option value="1">Pin 1</option><option value="2">Pin 2</option><option value="3">Pin 3</option><option value="4">Pin 4</option><option value="5">Pin 5</option><option value="6">Pin 6</option><option value="7">Pin 7</option><option value="8">Pin 8</option><option value="9">Pin 9</option><option value="10">Pin 10</option><option value="11">Pin 11</option><option value="12">Pin 12</option><option value="13">Pin 13</option><option value="14">Pin 14</option><option value="15">Pin 15</option></select>
+          </div>
+          <div class="form-group" style="flex:1"><label>Pin Sensore Livello Acqua:</label>
+            <select id="cfgMcpLevel"><option value="-1">OFF</option><option value="0">Pin 0</option><option value="1">Pin 1</option><option value="2">Pin 2</option><option value="3">Pin 3</option><option value="4">Pin 4</option><option value="5">Pin 5</option><option value="6">Pin 6</option><option value="7">Pin 7</option><option value="8">Pin 8</option><option value="9">Pin 9</option><option value="10">Pin 10</option><option value="11">Pin 11</option><option value="12">Pin 12</option><option value="13">Pin 13</option><option value="14">Pin 14</option><option value="15">Pin 15</option></select>
+          </div>
+      </div>
+      
+      <button class="btn btn-cyan" onclick="saveHardwareSettings()">💾 Salva Mappatura Hardware</button>
+      
+      <hr class="divider">
+      <div class="flex-row" style="align-items:center; gap: 15px;">
+          <button class="btn btn-outline" style="flex:0.5" onclick="scanI2C()">🔍 Esegui Scansione I2C</button>
+          <div style="flex: 1; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+            <strong style="color: var(--emerald-green);" id="i2cScanResult">Premi per scansionare i dispositivi I2C collegati.</strong>
+          </div>
+      </div>
+    </div>
+
     <!-- SISTEMA -->
     <div class="card">
       <div class="card-title">⚙️ <span data-i18n="TITLE_SYSTEM_SETTINGS">Impostazioni di Sistema</span></div>
@@ -341,6 +365,8 @@
         document.getElementById('cfgDebug').value = d.debug ? 'true' : 'false';
         document.getElementById('cfgScreenMode').value = d.screen_mode || 1;
         document.getElementById('cfgScreensaver').value = d.screensaver_t || 0;
+        document.getElementById('cfgMcpLight').value = d.mcp_pin_light;
+        document.getElementById('cfgMcpLevel').value = d.mcp_pin_level;
       }
     } catch(e) { console.error('API Error:', e); }
   }
@@ -365,6 +391,20 @@
     const b='timezone='+encodeURIComponent(document.getElementById('cfgTimezone').value)+'&format_hour='+document.getElementById('cfgFormatHour').value+'&date_format='+document.getElementById('cfgDateFormat').value+'&ntp1='+encodeURIComponent(document.getElementById('cfgNtp1').value)+'&ntp2='+encodeURIComponent(document.getElementById('cfgNtp2').value);
     await fetch('/api/settings/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveHardwareSettings() {
+    const b='mcp_pin_light='+document.getElementById('cfgMcpLight').value+'&mcp_pin_level='+document.getElementById('cfgMcpLevel').value;
+    await fetch('/api/settings/hardware',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast('Mappatura I2C Salvata!'); updateStatus();
+  }
+  async function scanI2C() {
+    const el = document.getElementById('i2cScanResult');
+    el.innerText = 'Scansione in corso...';
+    try {
+      const res = await fetch('/api/scan_i2c');
+      const d = await res.json();
+      el.innerText = d.result;
+    } catch(e) { el.innerText = 'Errore scansione I2C'; }
   }
   async function triggerNtpSync() { await fetch('/api/ntp/sync',{method:'POST'}); showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus(); }
   async function saveWifiSettings() {

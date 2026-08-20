@@ -1,5 +1,5 @@
-#include "aquarium_logic.h"
-#include "language_manager.h"
+#include "../include/aquarium_logic.h"
+#include "../include/language_manager.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <SD.h>
@@ -11,12 +11,23 @@
 #include <ArduinoJson.h>
 
 
+#include <Wire.h>
+#include <Adafruit_MCP23X17.h>
+// #include <DS2482.h> // Da decommentare quando arriva l'hardware
+// #include <DallasTemperature.h>
+
+Adafruit_MCP23X17 mcp;
+bool mcp_connected = false;
+
+// Predisposizione per il bridge 1-Wire I2C
+// DS2482 ds(0);
+// DallasTemperature sensors(&ds);
+
 AquariumLogic aquarium;
 
-static OneWire oneWire(TEMP_SENSOR_PIN);
-static DallasTemperature sensors(&oneWire);
-
-AquariumLogic::AquariumLogic() {}
+AquariumLogic::AquariumLogic() {
+  // Configurazione base I2C
+}
 
 bool AquariumLogic::isWifiConnected() const {
   return (WiFi.status() == WL_CONNECTED);
@@ -91,9 +102,31 @@ WifiNetworkItem AquariumLogic::getWifiNetwork(int idx) const {
 }
 
 void AquariumLogic::init() {
-  pinMode(LIGHT_RELAY_PIN, OUTPUT);
-  digitalWrite(LIGHT_RELAY_PIN, LOW);
+  // Il relè verrà mappato in futuro su altri pin/espansioni.
 
+  // 1. Inizializzazione Bus I2C
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  
+  // 2. Inizializzazione MCP23017 (Relè)
+  if (!mcp.begin_I2C(0x20)) {
+    Serial.println("Errore: MCP23017 non trovato sul bus I2C!");
+    mcp_connected = false;
+  } else {
+    Serial.println("MCP23017 Inizializzato con successo.");
+    mcp_connected = true;
+    
+    // Configura i pin dinamici (se definiti)
+    if (cfg.mcpPinLight >= 0 && cfg.mcpPinLight < 16) {
+      mcp.pinMode(cfg.mcpPinLight, OUTPUT);
+    }
+    if (cfg.mcpPinWaterLevel >= 0 && cfg.mcpPinWaterLevel < 16) {
+      mcp.pinMode(cfg.mcpPinWaterLevel, INPUT_PULLUP);
+    }
+  }
+
+  // 3. Inizializzazione Sensore Temperatura (DS2482)
+  // TODO: Da abilitare quando presente il DS2482
+  /*
   sensors.begin();
   int deviceCount = sensors.getDeviceCount();
   if (deviceCount > 0) {
@@ -103,10 +136,37 @@ void AquariumLogic::init() {
   } else {
     m_sensorConnected = false;
   }
+  */
+  m_sensorConnected = false; // Fallback simulation finché non c'è l'hardware
+
 
   loadConfigSD();
   evaluateSchedule();
   applyLightHardware();
+
+  // 4. Time Update
+  m_lastTimeUpdate = millis();
+}
+
+String AquariumLogic::scanI2C() const {
+  String result = "";
+  byte error, address;
+  int nDevices = 0;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      if (nDevices > 0) result += ", ";
+      result += "0x";
+      if (address < 16) result += "0";
+      result += String(address, HEX);
+      nDevices++;
+    }
+  }
+  if (nDevices == 0) {
+    result = "Nessun dispositivo I2C trovato";
+  }
+  return result;
 }
 
 void AquariumLogic::update() {
@@ -181,17 +241,19 @@ void AquariumLogic::update() {
 
 void AquariumLogic::readSensor() {
   if (m_sensorConnected) {
+    // TODO: Lettura I2C dal DS2482
+    /*
     float rawT = sensors.getTempCByIndex(0);
     sensors.requestTemperatures(); // request next conversion
 
     if (rawT > -50.0f && rawT < 85.0f) {
       float filtered = rawT + m_config.tempOffset;
-      // Exponential moving average filter for smooth reading
       m_currentTemp = m_currentTemp * 0.7f + filtered * 0.3f;
       if (m_currentTemp < m_minTemp) m_minTemp = m_currentTemp;
       if (m_currentTemp > m_maxTemp) m_maxTemp = m_currentTemp;
       return;
     }
+    */
   }
 
   // Fallback Simulation if hardware sensor is absent/disconnected
@@ -240,7 +302,10 @@ void AquariumLogic::evaluateSchedule() {
 }
 void AquariumLogic::applyLightHardware() {
   bool pinState = m_config.relayInverted ? !m_lightOn : m_lightOn;
-  digitalWrite(LIGHT_RELAY_PIN, pinState ? HIGH : LOW);
+  
+  if (mcp_connected && cfg.mcpPinLight >= 0 && cfg.mcpPinLight < 16) {
+    mcp.digitalWrite(cfg.mcpPinLight, pinState ? HIGH : LOW);
+  }
 }
 
 void AquariumLogic::setLightManual(bool on) {
@@ -426,6 +491,8 @@ bool AquariumLogic::loadConfigSD() {
     else if (key.equalsIgnoreCase("relay_inv"))    m_config.relayInverted = (val == "1" || val.equalsIgnoreCase("true"));
     else if (key.equalsIgnoreCase("date_format"))  m_config.dateFormat    = val.toInt() % 3;
     else if (key.equalsIgnoreCase("screensaver_t")) m_config.screensaverTime = (uint16_t)constrain(val.toInt(), 0, 3600);
+    else if (key.equalsIgnoreCase("mcp_pin_light"))  cfg.mcpPinLight = (int8_t)val.toInt();
+    else if (key.equalsIgnoreCase("mcp_pin_level"))  cfg.mcpPinWaterLevel = (int8_t)val.toInt();
     else if (key.equalsIgnoreCase("lang_file")) {
       String cleanVal = val;
       while (cleanVal.startsWith("\"") && cleanVal.endsWith("\"") && cleanVal.length() >= 2) {

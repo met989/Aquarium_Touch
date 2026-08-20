@@ -1,6 +1,6 @@
-#include "aquarium_logic.h"
-#include "aquarium_server.h"
-#include "config.h"
+#include "../include/aquarium_logic.h"
+#include "../include/aquarium_server.h"
+#include "../include/config.h"
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
@@ -115,7 +115,7 @@ bool parseConfigLine(const String &rawLine) {
     String tzVal = stripQuotes(val);
     if (tzVal.startsWith("CET") || tzVal.length() == 0 ||
         (!tzVal.startsWith("+") && !tzVal.startsWith("-") &&
-         !isdigit(tzVal.charAt(0)))) {
+         !isDigit(tzVal.charAt(0)))) {
       tzVal = DEFAULT_TIMEZONE;
     }
     cfg.timezone = tzVal;
@@ -216,7 +216,7 @@ String buildConfigText() {
   String tzVal = cfg.timezone;
   if (tzVal.startsWith("CET") || tzVal.length() == 0 ||
       (!tzVal.startsWith("+") && !tzVal.startsWith("-") &&
-       !isdigit(tzVal.charAt(0)))) {
+       !isDigit(tzVal.charAt(0)))) {
     tzVal = DEFAULT_TIMEZONE;
   }
   cfg.timezone = tzVal;
@@ -234,6 +234,8 @@ String buildConfigText() {
   out += "mqtt_password=\"" + cfg.mqttPassword + "\"\n";
   out += "format_hour=" + String(cfg.formatHour) + "\n";
   out += "debug=" + String(cfg.debug ? "true" : "false") + "\n";
+  out += "mcp_pin_light=" + String(cfg.mcpPinLight) + "\n";
+  out += "mcp_pin_level=" + String(cfg.mcpPinWaterLevel) + "\n";
 
   const AquariumConfig &aq = aquarium.getConfig();
   out += "light_on_h=" + String(aq.lightOnHour) + "\n";
@@ -635,9 +637,9 @@ void drawSummary(const char *stateMsg) {
   tft.drawRect(0, 0, physW - 1, physH - 1, TFT_GREEN);
 }
 
-#include "aquarium_logic.h"
-#include "aquarium_ui.h"
-#include "language_manager.h"
+#include "../include/aquarium_logic.h"
+#include "../include/aquarium_ui.h"
+#include "../include/language_manager.h"
 
 AnimatedGIF gif;
 int gifOffsetX = 0;
@@ -728,12 +730,26 @@ void GIFDraw(GIFDRAW *pDraw) {
   }
 }
 
+// Funzione di utilità per pilotare il LED RGB di stato
+// I pin del CYD per il LED RGB sono solitamente Attivi Bassi (LOW = Acceso)
+void setSystemLedState(bool r, bool g, bool b) {
+  digitalWrite(LED_RED_PIN, r ? LOW : HIGH);
+  digitalWrite(LED_GREEN_PIN, g ? LOW : HIGH);
+  digitalWrite(LED_BLUE_PIN, b ? LOW : HIGH);
+}
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(1000);
   Serial.println("\n\n=== BOOTING ===");
   g_configMutex = xSemaphoreCreateMutex();
+  
+  // Inizializza LED RGB
+  pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_BLUE_PIN, OUTPUT);
+  // Accende il LED Blu (Stato: Caricamento all'avvio)
+  setSystemLedState(false, false, true);
   
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
@@ -743,6 +759,7 @@ void setup() {
   setDefaults();
   applyScreenMode();
   if (!initSD()) {
+    setSystemLedState(true, false, false); // Rosso = Errore bloccante
     showMessage("SD ERROR", "Error SD memory!", TFT_RED, TFT_WHITE);
     while (true)
       delay(1000);
@@ -756,7 +773,12 @@ void setup() {
     gifOffsetY = (physH - gif.getCanvasHeight()) / 2;
     
     uint32_t start_time = millis();
+    pinMode(BOOT_BTN, INPUT_PULLUP);
     while (millis() - start_time < 5000) {
+      // Se l'utente preme il tasto Boot durante l'animazione, la salta!
+      if (digitalRead(BOOT_BTN) == LOW) {
+        break;
+      }
       if (!gif.playFrame(true, NULL)) {
         gif.reset();
       }
@@ -809,6 +831,9 @@ void setup() {
   if (cfg.wifiSsid.length() > 0 && cfg.wifiSsid != "SSID_WIFI") {
     aquarium.connectWifiSSID(cfg.wifiSsid, cfg.wifiPassword);
   }
+  
+  // Setup completato, sistema pronto: Accende il LED Verde
+  setSystemLedState(false, true, false);
 }
 
 void loop() {

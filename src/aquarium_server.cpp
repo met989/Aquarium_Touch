@@ -1,7 +1,7 @@
-#include "aquarium_server.h"
-#include "aquarium_logic.h"
-#include "language_manager.h"
-#include "config.h"
+#include "../include/aquarium_server.h"
+#include "../include/aquarium_logic.h"
+#include "../include/language_manager.h"
+#include "../include/config.h"
 #include <WiFi.h>
 #include <SD.h>
 
@@ -9,8 +9,8 @@ AquariumServer aquariumServer;
 
 extern bool writeWholeConfigFileSafe();
 
-#include "embedded_web.h"
-#include "embedded_languages.h"
+#include "../include/embedded_web.h"
+#include "../include/embedded_languages.h"
 
 
 AquariumServer::AquariumServer() : m_server(80), m_started(false) {}
@@ -73,6 +73,8 @@ void AquariumServer::setupRoutes() {
   m_server.on("/api/settings/system",      HTTP_POST, [this]() { handleApiSetSystemSettings(); });
   m_server.on("/api/settings/screensaver", HTTP_POST, [this]() { handleApiSetScreensaver(); });
   m_server.on("/api/settings/language",    HTTP_POST, [this]() { handleApiSetLanguage(); });
+  m_server.on("/api/settings/hardware",    HTTP_POST, [this]() { handleApiSetHardwareSettings(); });
+  m_server.on("/api/scan_i2c",             HTTP_GET,  [this]() { handleApiScanI2C(); });
   m_server.on("/api/config/raw",           HTTP_GET,  [this]() { handleApiConfigRawGet(); });
   m_server.on("/api/config/raw",           HTTP_POST, [this]() { handleApiConfigRawPost(); });
 }
@@ -164,6 +166,8 @@ void AquariumServer::handleApiStatus() {
   json += "\"mqtt_user\":\"";      json += jStr(cfg.mqttUser);     json += "\",";
   json += "\"debug\":";            json += String(cfg.debug ? "true" : "false"); json += ",";
   json += "\"screen_mode\":";      json += String(cfg.screenMode); json += ",";
+  json += "\"mcp_pin_light\":";    json += String(cfg.mcpPinLight); json += ",";
+  json += "\"mcp_pin_level\":";    json += String(cfg.mcpPinWaterLevel); json += ",";
   json += "\"lang_file\":\"";      json += jStr(langManager.getActiveLanguageFile()); json += "\",";
   json += "\"lang_name\":\"";      json += jStr(langManager.getActiveLanguageName()); json += "\",";
   json += "\"time\":\"";           json += String(timeBuf); json += "\",";
@@ -286,6 +290,26 @@ void AquariumServer::handleApiSetScreensaver() {
   } else {
     m_server.send(400, "application/json", "{\"error\":\"missing args\"}");
   }
+}
+
+void AquariumServer::handleApiSetHardwareSettings() {
+  xSemaphoreTake(g_configMutex, portMAX_DELAY);
+  if (m_server.hasArg("mcp_pin_light")) {
+    cfg.mcpPinLight = (int8_t)m_server.arg("mcp_pin_light").toInt();
+  }
+  if (m_server.hasArg("mcp_pin_level")) {
+    cfg.mcpPinWaterLevel = (int8_t)m_server.arg("mcp_pin_level").toInt();
+  }
+  xSemaphoreGive(g_configMutex);
+  
+  g_saveConfigNeeded = true;
+  m_server.send(200, "application/json", "{\"status\":\"ok\"}");
+}
+
+void AquariumServer::handleApiScanI2C() {
+  String result = aquarium.scanI2C();
+  String json = "{\"result\":\"" + jStr(result) + "\"}";
+  m_server.send(200, "application/json", json);
 }
 
 void AquariumServer::handleApiSetLanguage() {

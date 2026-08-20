@@ -92,27 +92,31 @@ Il progetto è ottimizzato per l'utilizzo della scheda **ESP32-2432S028 (2.8" Al
 ![Schema Pinout ESP32-2432S028](https://macsbug.wordpress.com/wp-content/uploads/2022/08/esp32_2432s028_pcb_580-min.png)
 
 > [!NOTE]
-> La pagina indicata illustra nel dettaglio tutto l'hardware. Esistono 3 varianti fisiche di questa scheda: **l'ultima versione** (la più aggiornata e consigliata) è riconoscibile dalla presenza simultanea di entrambe le porte **USB-C e Micro USB**.
+> La [pagina di macsbug (ESP32-2432S028)](https://macsbug.wordpress.com/2022/08/17/esp32-2432s028/) illustra nel dettaglio tutto l'hardware. Esistono 3 varianti fisiche di questa scheda: **l'ultima versione** (la più aggiornata e consigliata) è riconoscibile dalla presenza simultanea di entrambe le porte **USB-C e Micro USB**.
 
 Tutte le definizioni dei pin e dei parametri hardware sono accentrate in `include/config.h` (**Single Source of Truth**).
 
 | Componente | Periferica | Pin ESP32 | Note / Descrizione |
 | :--- | :--- | :--- | :--- |
-| **Display TFT (ILI9341)** | `TFT_MOSI` | `GPIO 13` | SPI MOSI Display |
+| **Display TFT (ILI9341)** |
+| | `TFT_MOSI` | `GPIO 13` | SPI MOSI Display |
 | | `TFT_MISO` | `GPIO 12` | SPI MISO Display |
 | | `TFT_SCLK` | `GPIO 14` | SPI Clock Display |
 | | `TFT_CS` | `GPIO 15` | Chip Select Display |
 | | `TFT_DC` | `GPIO 2` | Data / Command Select |
 | | `TFT_RST` | `-1` | Hardware Reset (collegato a EN/VCC) |
 | | `TFT_BL` | `GPIO 21` | Controllo Retroilluminazione (PWM / High-Low) |
-| **Touchscreen (XPT2046)** | `TOUCH_CS` | `GPIO 33` | Chip Select Touch |
+| **Touchscreen (XPT2046)** |
+| | `TOUCH_CS` | `GPIO 33` | Chip Select Touch |
 | | `TOUCH_IRQ` | `GPIO 36` | Interrupt Touch (Input) |
 | | `TOUCH_MOSI` | `GPIO 32` | SPI MOSI Touch |
 | | `TOUCH_MISO` | `GPIO 39` | SPI MISO Touch |
 | | `TOUCH_SCK` | `GPIO 25` | SPI Clock Touch |
 | **Scheda SD** | `SD_CS` | `GPIO 5` | Chip Select SD Card |
-| **Sensore Temperatura** | `TEMP_SENSOR_PIN` | `GPIO 4` | Bus 1-Wire DS18B20 (richiede resistenza pull-up 4.7kΩ) |
-| **Output Relè Luce** | `LIGHT_RELAY_PIN` | `GPIO 17` | Uscita digitale Relè / MOSFET illuminazione |
+| **Sensore Temperatura** | `TEMP_SENSOR_PIN` | `GPIO 27` | Bus 1-Wire DS18B20 (tramite connettore CN1, pull-up integrato o richiesta 4.7kΩ) |
+| **LED Stato (Rosso)** | `LED_RED_PIN` | `GPIO 4` | Indica un problema o errore di sistema |
+| **LED Stato (Verde)** | `LED_GREEN_PIN` | `GPIO 16` | Indica sistema completamente funzionante e pronto |
+| **LED Stato (Blu)** | `LED_BLUE_PIN` | `GPIO 17` | Indica caricamento all'avvio in corso |
 | **Pulsante di Avvio** | `BOOT_BTN` | `GPIO 0` | Pulsante BOOT integrato |
 
 ### Specifiche Bus SPI
