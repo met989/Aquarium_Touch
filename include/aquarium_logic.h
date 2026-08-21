@@ -31,6 +31,7 @@ struct AquariumConfig {
   uint8_t dateFormat    = DEFAULT_DATE_FORMAT; // 0: DD/MM/YYYY, 1: MM/DD/YYYY, 2: YYYY/MM/DD
   char langFile[64]     = DEFAULT_LANGUAGE_FILE;
   uint16_t screensaverTime = 0; // seconds; 0 = disabled (MAI)
+  bool autoDimming      = false;
 };
 
 struct WifiNetworkItem {
@@ -60,6 +61,14 @@ public:
   void toggleLight();
   void toggleRelayInverted();
   void setAutoSchedule(bool enable);
+
+  // Screen & LDR
+  uint16_t getLdrValue() const { return m_currentLdrValue; }
+  void setAutoDimming(bool enable);
+  void updateBacklight();
+
+  // Settings
+  AquariumConfig& getConfig() { return m_config; }
 
   // OTA Update
   bool checkGitHubForUpdate(String& outVersion, String& outUrl);
@@ -130,6 +139,7 @@ private:
   bool m_lightOn = false;
   bool m_manualOverride = false;
 
+  uint16_t m_currentLdrValue = 0;
   uint32_t m_lastSensorRead = 0;
   uint32_t m_lastTimeUpdate = 0;
   uint32_t m_uptimeSeconds = 32400; // Simulated start at 09:00:00 AM

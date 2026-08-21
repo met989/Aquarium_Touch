@@ -147,6 +147,26 @@ void AquariumUI::update() {
     }
   }
 
+  // LDR screen live redraw without flickering
+  static uint32_t lastLdrRedraw = 0;
+  static int lastLdrValue = -1;
+  if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 10) {
+    if (millis() - lastLdrRedraw >= 500) {
+      lastLdrRedraw = millis();
+      int currentLdr = aquarium.getLdrValue();
+      if (currentLdr != lastLdrValue) {
+        lastLdrValue = currentLdr;
+        // Erase and redraw only the brightness value area
+        m_tft->fillRoundRect(10, 60, 300, 60, 8, COLOR_CARD_BORDER);
+        m_tft->drawRoundRect(10, 60, 300, 60, 8, COLOR_CYAN_GLOW);
+        m_tft->setTextColor(TFT_WHITE);
+        m_tft->setTextDatum(MC_DATUM);
+        String luxText = String(langManager.getText("LABEL_BRIGHTNESS", "Brightness:")) + " " + String(currentLdr) + " mV";
+        m_tft->drawString(luxText, 160, 90, 4);
+      }
+    }
+  }
+
   // 1. Update Animations (skips calculations if on SETTINGS)
   updateAnimations();
 
@@ -496,17 +516,26 @@ void AquariumUI::drawSettingsMenu() {
 
       if (m_settingsMenuPage == 1) {
           const char* items_page2[] = {
-            "9. Hardware & I2C"
+            langManager.getText("MENU_HARDWARE", "9. Hardware & I2C"),
+            langManager.getText("MENU_SCREEN", "10. Screen")
           };
           int btnWidth = 145;
           int btnHeight = 40;
           int startY = 24;
+          int gapY = 42;
           
-          GFX->fillRoundRect(10, startY, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
-          GFX->drawRoundRect(10, startY, btnWidth, btnHeight, 8, COLOR_CYAN_GLOW);
-          GFX->setTextColor(TFT_WHITE);
-          GFX->setTextDatum(MC_DATUM);
-          GFX->drawString(items_page2[0], 10 + btnWidth/2, startY + btnHeight/2, 2);
+          for (int i = 0; i < 2; i++) {
+              int col = i % 2;
+              int row = i / 2;
+              int x = 10 + col * 155;
+              int y = startY + row * gapY;
+              
+              GFX->fillRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
+              GFX->drawRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CYAN_GLOW);
+              GFX->setTextColor(TFT_WHITE);
+              GFX->setTextDatum(MC_DATUM);
+              GFX->drawString(items_page2[i], x + btnWidth/2, y + btnHeight/2, 2);
+          }
           return;
       }
 
@@ -600,6 +629,7 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         if (sub == 7) drawSubScreenEnergySaving();
         if (sub == 8) drawSubScreenFactoryReset();
         if (sub == 9) drawSubScreenHardware();
+        if (sub == 10) drawSubScreenScreen();
     }
 }
 
@@ -1085,17 +1115,35 @@ void AquariumUI::drawCircularTempGauge(int cx, int cy, int r, float temp, float 
   GFX->fillCircle(cx, cy, r - 15, COLOR_BG_OCEAN);
   GFX->drawCircle(cx, cy, r - 15, COLOR_CARD_BORDER);
 
+  // Draw Needle (behind the text box)
+  float needleRad = endAngle * 0.0174533f;
+  int nx = cx + (int)(cosf(needleRad) * (r - 4));
+  int ny = cy + (int)(sinf(needleRad) * (r - 4));
+  GFX->drawLine(cx, cy, nx, ny, gaugeColor);
+  
+  // Make needle a bit thicker
+  int nx2 = cx + (int)(cosf(needleRad + 0.05f) * (r - 10));
+  int ny2 = cy + (int)(sinf(needleRad + 0.05f) * (r - 10));
+  int nx3 = cx + (int)(cosf(needleRad - 0.05f) * (r - 10));
+  int ny3 = cy + (int)(sinf(needleRad - 0.05f) * (r - 10));
+  GFX->fillTriangle(cx, cy, nx2, ny2, nx, ny, gaugeColor);
+  GFX->fillTriangle(cx, cy, nx3, ny3, nx, ny, gaugeColor);
+  GFX->fillCircle(cx, cy, 4, gaugeColor);
+
   // Digital Temperature Value
   char tempStr[10];
   snprintf(tempStr, sizeof(tempStr), "%.1f", temp);
   GFX->setTextDatum(MC_DATUM);
   GFX->setTextColor(TFT_WHITE, COLOR_BG_OCEAN);
-  GFX->drawString(tempStr, cx - 4, cy - 6, 4);
+  GFX->drawString(tempStr, cx - 4, cy - 8, 4);
 
   GFX->setTextColor(gaugeColor, COLOR_BG_OCEAN);
-  GFX->drawString("°C", cx + 32, cy - 10, 2);
+  GFX->drawString("°C", cx + 32, cy - 12, 2);
+  
+  // PH Display
   GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_BG_OCEAN);
-  GFX->drawString("ACQUA", cx, cy + 18, 1);
+  // For now using a dummy value as requested "ora metti un esempio tipo 7.0"
+  GFX->drawString("PH: 7.00", cx, cy + 18, 2); 
 }
 
 void AquariumUI::drawGlassCard(int x, int y, int w, int h, uint16_t borderColor, uint16_t bgCol) {
@@ -1225,10 +1273,18 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           int btnWidth = 145;
           int btnHeight = 40;
           int startY = 24;
-          if (touchX >= 10 && touchX <= 10 + btnWidth && sy >= startY && sy <= startY + btnHeight) {
-              m_settingsSubScreen = 9;
-              m_settingsNeedsRedraw = true;
-              return;
+          int gapY = 42;
+          
+          for (int i = 0; i < 2; i++) {
+              int col = i % 2;
+              int row = i / 2;
+              int x = 10 + col * 155;
+              int y = startY + row * gapY;
+              if (touchX >= x && touchX <= x + btnWidth && sy >= y && sy <= y + btnHeight) {
+                  m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10
+                  m_settingsNeedsRedraw = true;
+                  return;
+              }
           }
       } else if (m_settingsSubScreen == 1) {
         // Sub 1: Data & Ora (Updated for enlarged Y: 104..148 and 164..216)
@@ -1525,6 +1581,13 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         if (touchX >= 10 && touchX <= 110 && sy >= 204 && sy <= 236) {
           m_settingsNeedsRedraw = true; // Triggers redraw which calls scanI2C()
         }
+      } else if (m_settingsSubScreen == 10) {
+        // Sub 10: Schermo & Auto-Dimming
+        // Toggle Button (X: 10..310, Y: 140..190)
+        if (touchX >= 10 && touchX <= 310 && sy >= 140 && sy <= 190) {
+          aquarium.setAutoDimming(!cfg.autoDimming);
+          m_settingsNeedsRedraw = true;
+        }
       }
 
 
@@ -1581,4 +1644,29 @@ void AquariumUI::drawSubScreenHardware() {
      i2cRes = i2cRes.substring(0, 20) + "..";
   }
   GFX->drawString(i2cRes, 125, 220, 2);
+}
+
+void AquariumUI::drawSubScreenScreen() {
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< MENU"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  
+  GFX->setTextColor(COLOR_CYAN_GLOW);
+  GFX->setTextDatum(TC_DATUM);
+  GFX->drawString(langManager.getText("TITLE_SCREEN", "SCREEN"), 190, 10, 2);
+  
+  // Real-time Lux/mV display
+  GFX->fillRoundRect(10, 60, 300, 60, 8, COLOR_CARD_BORDER);
+  GFX->drawRoundRect(10, 60, 300, 60, 8, COLOR_CYAN_GLOW);
+  
+  GFX->setTextColor(TFT_WHITE);
+  GFX->setTextDatum(MC_DATUM);
+  String luxText = String(langManager.getText("LABEL_BRIGHTNESS", "Brightness:")) + " " + String(aquarium.getLdrValue()) + " mV";
+  GFX->drawString(luxText, 160, 90, 4);
+
+  // Auto-Dimming Toggle Button
+  const AquariumConfig& cfg = aquarium.getConfig();
+  uint16_t btnColor = cfg.autoDimming ? COLOR_EMERALD_GREEN : COLOR_CARD_BORDER;
+  uint16_t txtColor = cfg.autoDimming ? TFT_BLACK : TFT_WHITE;
+  
+  String toggleTxt = cfg.autoDimming ? langManager.getText("BTN_AUTODIM_ON", "Auto-Dimming: ON") : langManager.getText("BTN_AUTODIM_OFF", "Auto-Dimming: OFF");
+  drawTouchButton(10, 140, 300, 50, toggleTxt.c_str(), btnColor, txtColor, COLOR_CYAN_GLOW);
 }

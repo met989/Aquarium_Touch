@@ -74,6 +74,7 @@ private:
   void drawSubScreenEnergySaving();
   void drawSubScreenFactoryReset();
   void drawSubScreenHardware();
+  void drawSubScreenScreen();
   void drawWifiKeyboard();
 
 

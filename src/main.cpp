@@ -21,13 +21,11 @@ uint16_t physW = 320, physH = 240;
 unsigned long lastTouchLog = 0;
 
 void backlightOn() {
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, HIGH);
+  aquarium.updateBacklight();
 }
 
 void backlightOff() {
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, LOW);
+  ledcWrite(0, 0); // Spenge fisicamente il ledc
 }
 
 bool g_screenIsOff = false;
@@ -191,6 +189,8 @@ bool parseConfigLine(const String &rawLine) {
     aquarium.setLanguageFile(stripQuotes(val));
   else if (key.equalsIgnoreCase("screensaver_t"))
     aquarium.setScreensaverTime((uint16_t)constrain(val.toInt(), 0, 3600));
+  else if (key.equalsIgnoreCase("auto_dimming"))
+    aquarium.setAutoDimming(val == "1" || val.equalsIgnoreCase("true"));
 
   else
     DBG_PRINTF("[CFG] Chiave ignorata: %s\n", key.c_str());
@@ -260,6 +260,7 @@ String buildConfigText() {
 
   out += "lang_file=\"" + cleanLang + "\"\n";
   out += "screensaver_t=" + String(aquarium.getConfig().screensaverTime) + "\n";
+  out += "auto_dimming=" + String(aquarium.getConfig().autoDimming ? "1" : "0") + "\n";
   return out;
 }
 

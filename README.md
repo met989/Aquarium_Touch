@@ -117,6 +117,7 @@ Tutte le definizioni dei pin e dei parametri hardware sono accentrate in `includ
 | **LED Stato (Rosso)** | `LED_RED_PIN` | `GPIO 4` | Indica un problema o errore di sistema |
 | **LED Stato (Verde)** | `LED_GREEN_PIN` | `GPIO 16` | Indica sistema completamente funzionante e pronto |
 | **LED Stato (Blu)** | `LED_BLUE_PIN` | `GPIO 17` | Indica caricamento all'avvio in corso |
+| **Sensore Luce (LDR)** | `LDR_PIN` | `GPIO 34` | Fotoresistore GT36516 integrato (Input Analogico) |
 | **Pulsante di Avvio** | `BOOT_BTN` | `GPIO 0` | Pulsante BOOT integrato |
 
 ### Specifiche Bus SPI
@@ -291,7 +292,7 @@ Il progetto è in continua evoluzione. Le prossime funzionalità e integrazioni 
 - **Sensore pH:** Monitoraggio in tempo reale dell'acidità dell'acqua.
 - **Sensore Livello Acqua:** Rilevamento del livello di evaporazione o livello critico con avvisi a schermo/web.
 - **Attivatore Mangiatoia Automatica:** Integrazione con la programmazione (Schedule) per erogazione cibo agli orari prestabiliti.
-- **Sensore di Illuminamento (Lux):** Misuratore di intensità luminosa (fino a 65.535 lx), ideale per verificare l'efficacia e l'usura nel tempo della plafoniera LED per il corretto sviluppo delle piante.
+- **Sensore di Illuminamento e Auto-Dimming:** Utilizzo del fotoresistore GT36516 integrato sulla scheda (GPIO 34) per regolare automaticamente la luminosità del display (TFT_BL) in base alla luce ambientale, o integrazione di un sensore Lux esterno per misurazioni precise sulla plafoniera.
 - **Gravity: Analog TDS Sensor Meter (Arduino):** Misurazione dei Solidi Totali Disciolti (TDS) in *ppm* (parti per milione), perfetto per monitorare in modo granulare la concentrazione di fertilizzanti in colonna d'acqua e la purezza generale.
 
 ---

@@ -137,6 +137,14 @@ void AquariumLogic::init() {
     m_sensorConnected = false;
   }
   */
+  // 4. LDR and Backlight PWM setup
+  pinMode(LDR_PIN, ANALOG);
+  analogSetAttenuation(ADC_0db); // Massima sensibilità a bassa tensione
+  
+  ledcSetup(0, 5000, 8); // Canale 0, 5000 Hz, risoluzione 8 bit
+  ledcAttachPin(TFT_BL, 0);
+  updateBacklight(); // Imposta la luminosità iniziale
+
   m_sensorConnected = false; // Fallback simulation finché non c'è l'hardware
 
 
@@ -171,6 +179,12 @@ String AquariumLogic::scanI2C() const {
 
 void AquariumLogic::update() {
   uint32_t now = millis();
+  
+  static uint32_t lastPrint = 0;
+  if (now - lastPrint >= 5000) {
+      lastPrint = now;
+      Serial.println("AquariumLogic::update() is running!");
+  }
 
   // Automatic NTP Sync when Wi-Fi is connected (on first connect & every 24 hours)
   static bool hasSynced = false;
@@ -194,6 +208,15 @@ void AquariumLogic::update() {
   if (now - m_lastSensorRead >= 2000) {
     m_lastSensorRead = now;
     readSensor();
+  }
+
+  // LDR Update (every 1s)
+  static uint32_t lastLdrRead = 0;
+  if (now - lastLdrRead >= 1000) {
+    lastLdrRead = now;
+    m_currentLdrValue = analogReadMilliVolts(LDR_PIN);
+    Serial.printf("LDR mV: %d\n", m_currentLdrValue);
+    updateBacklight();
   }
 
   // WiFi Async Scan Polling
@@ -320,8 +343,31 @@ void AquariumLogic::toggleLight() {
 
 void AquariumLogic::toggleRelayInverted() {
   m_config.relayInverted = !m_config.relayInverted;
-  applyLightHardware();
   saveConfigSD();
+  applyLightHardware();
+}
+
+void AquariumLogic::setAutoDimming(bool enable) {
+  m_config.autoDimming = enable;
+  saveConfigSD();
+  updateBacklight();
+}
+
+extern bool g_screenIsOff;
+
+void AquariumLogic::updateBacklight() {
+  if (g_screenIsOff) return; // Non accendere se lo screen saver è attivo
+
+  if (m_config.autoDimming) {
+    // 75mV (massima luminosità ambientale) -> PWM 255
+    // 1000mV (buio) -> PWM 10
+    int pwmValue = map(m_currentLdrValue, 75, 1000, 255, 10);
+    if (pwmValue < 10) pwmValue = 10;
+    if (pwmValue > 255) pwmValue = 255;
+    ledcWrite(0, pwmValue);
+  } else {
+    ledcWrite(0, 255); // Massima luminosità
+  }
 }
 
 void AquariumLogic::setAutoSchedule(bool enable) {
@@ -362,22 +408,16 @@ bool AquariumLogic::syncNTP() {
 }
 
 void AquariumLogic::getTime(int& h, int& m, int& s) const {
-  struct tm timeinfo;
-  if (WiFi.status() == WL_CONNECTED && getLocalTime(&timeinfo, 0)) {
-    h = timeinfo.tm_hour;
-    m = timeinfo.tm_min;
-    s = timeinfo.tm_sec;
-  } else {
-    uint32_t secToday = m_uptimeSeconds % 86400;
-    h = secToday / 3600;
-    m = (secToday % 3600) / 60;
-    s = secToday % 60;
-  }
+  uint32_t secToday = m_uptimeSeconds % 86400;
+  h = secToday / 3600;
+  m = (secToday % 3600) / 60;
+  s = secToday % 60;
 }
 
 void AquariumLogic::getDate(int& day, int& month, int& year) const {
+  // Simplified date tracking based on last sync
   struct tm timeinfo;
-  if (WiFi.status() == WL_CONNECTED && getLocalTime(&timeinfo, 0)) {
+  if (getLocalTime(&timeinfo, 0)) {
     day = timeinfo.tm_mday;
     month = timeinfo.tm_mon + 1;
     year = timeinfo.tm_year + 1900;

@@ -51,6 +51,7 @@
 #define LED_RED_PIN 4      // LED Stato: Problema/Errore
 #define LED_GREEN_PIN 16   // LED Stato: Funzionante e Pronto
 #define LED_BLUE_PIN 17    // LED Stato: Caricamento all'avvio
+#define LDR_PIN 34         // Fotoresistore GT36516 integrato
 
 // ------------------------------------------------------------------------------
 // 4. TFT_eSPI Fonts & SPI Speeds
