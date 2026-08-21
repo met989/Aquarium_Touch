@@ -46,12 +46,12 @@
 #define SD_CS 5
 #define BOOT_BTN 0
 // #define TEMP_SENSOR_PIN 27 // (Vecchia assegnazione)
-#define I2C_SDA_PIN 27     // I2C SDA per MCP23017 e DS2482
-#define I2C_SCL_PIN 22     // I2C SCL per MCP23017 e DS2482
-#define LED_RED_PIN 4      // LED Stato: Problema/Errore
-#define LED_GREEN_PIN 16   // LED Stato: Funzionante e Pronto
-#define LED_BLUE_PIN 17    // LED Stato: Caricamento all'avvio
-#define LDR_PIN 34         // Fotoresistore GT36516 integrato
+#define I2C_SDA_PIN 27   // I2C SDA per MCP23017 e DS2482
+#define I2C_SCL_PIN 22   // I2C SCL per MCP23017 e DS2482
+#define LED_RED_PIN 4    // LED Stato: Problema/Errore
+#define LED_GREEN_PIN 16 // LED Stato: Funzionante e Pronto
+#define LED_BLUE_PIN 17  // LED Stato: Caricamento all'avvio
+#define LDR_PIN 34       // Fotoresistore GT36516 integrato
 
 // ------------------------------------------------------------------------------
 // 4. TFT_eSPI Fonts & SPI Speeds
@@ -73,18 +73,36 @@
 // ------------------------------------------------------------------------------
 // 5. Colors (RGB565)
 // ------------------------------------------------------------------------------
-#define COLOR_BG_OCEAN 0x08A7      // Sfondo principale delle schermate/tab (Blu Oceano scuro)
-#define COLOR_OCEAN_DEPTH 0x0048   // Sfondo dei caricamenti/formattazione (Blu Abisso profondo)
-#define COLOR_WATER_TOP 0x0A55     // Colore delle onde animate in alto sulla Dashboard (Azzurro onda)
-#define COLOR_CARD_BG 0x11EC       // Sfondo semitrasparente dei pannelli/pulsanti e tastiera (Blu Vetro)
-#define COLOR_CARD_BORDER 0x2C18   // Bordo predefinito dei pannelli in vetro (Grigio/Blu scuro)
-#define COLOR_CYAN_GLOW 0x07FF     // Colore di evidenza Neon per testi, valori di temperatura e bordi attivi (Ciano)
-#define COLOR_EMERALD_GREEN 0x0760 // Colore per stati attivi/sicuri (es. Temperatura OK, Connesso, pulsante SI) (Verde)
-#define COLOR_CORAL_RED 0xF965     // Colore per stati di avviso/errore (es. Temp. alta, Disconnesso, pulsante NO) (Rosso)
-#define COLOR_GOLD_ACCENT 0xFEA0   // Dettagli dorati come icone attive della barra di navigazione e testi secondari (Oro)
-#define COLOR_MOON_BLUE 0x3DFE     // Colore per indicatori disattivi (es. Cerchio con luce spenta) (Blu Luna)
-#define COLOR_TEXT_MUTED 0x8C71    // Colore per etichette secondarie e descrizioni testuali (Grigio chiaro)
-#define COLOR_NAV_BG 0x0845        // Sfondo fisso della barra di navigazione in basso (Nero/Blu scuro)
+#define COLOR_BG_OCEAN                                                         \
+  0x08A7 // Sfondo principale delle schermate/tab (Blu Oceano scuro)
+#define COLOR_OCEAN_DEPTH                                                      \
+  0x0048 // Sfondo dei caricamenti/formattazione (Blu Abisso profondo)
+#define COLOR_WATER_TOP                                                        \
+  0x0A55 // Colore delle onde animate in alto sulla Dashboard (Azzurro onda)
+#define COLOR_CARD_BG                                                          \
+  0x11EC // Sfondo semitrasparente dei pannelli/pulsanti e tastiera (Blu Vetro)
+#define COLOR_CARD_BORDER                                                      \
+  0x2C18 // Bordo predefinito dei pannelli in vetro (Grigio/Blu scuro)
+#define COLOR_CYAN_GLOW                                                        \
+  0x07FF // Colore di evidenza Neon per testi, valori di temperatura e bordi
+         // attivi (Ciano)
+#define COLOR_EMERALD_GREEN                                                    \
+  0x0760 // Colore per stati attivi/sicuri (es. Temperatura OK, Connesso,
+         // pulsante SI) (Verde)
+#define COLOR_CORAL_RED                                                        \
+  0xF965 // Colore per stati di avviso/errore (es. Temp. alta, Disconnesso,
+         // pulsante NO) (Rosso)
+#define COLOR_GOLD_ACCENT                                                      \
+  0xFEA0 // Dettagli dorati come icone attive della barra di navigazione e testi
+         // secondari (Oro)
+#define COLOR_MOON_BLUE                                                        \
+  0x3DFE // Colore per indicatori disattivi (es. Cerchio con luce spenta) (Blu
+         // Luna)
+#define COLOR_TEXT_MUTED                                                       \
+  0x8C71 // Colore per etichette secondarie e descrizioni testuali (Grigio
+         // chiaro)
+#define COLOR_NAV_BG                                                           \
+  0x0845 // Sfondo fisso della barra di navigazione in basso (Nero/Blu scuro)
 
 // ------------------------------------------------------------------------------
 // 6. Optimal Temperature Target Configuration
@@ -96,7 +114,7 @@
 // ------------------------------------------------------------------------------
 // 7. System Constants & File Paths
 // ------------------------------------------------------------------------------
-#define AQUARIUM_OS_VERSION "0.5.0-17082026-beta"
+#define AQUARIUM_OS_VERSION "0.5.2-21082026-beta"
 
 static const uint32_t SERIAL_BAUD = 115200;
 static const char *CONFIG_PATH = "/config.cfg";
@@ -136,7 +154,8 @@ static const uint32_t BOOT_HOLD_MS = 3000;
 #define UI_FISH_COUNT 12         // Number of swimming fish
 #define UI_TOUCH_DEBOUNCE_MS 250 // Touch debounce in milliseconds
 // ------------------------------------------------------------------------------
-// 9. Runtime Configuration Structs (shared between main.cpp and aquarium_server.cpp)
+// 9. Runtime Configuration Structs (shared between main.cpp and
+// aquarium_server.cpp)
 // ------------------------------------------------------------------------------
 
 #ifdef __cplusplus
@@ -150,16 +169,16 @@ struct AppConfig {
   String wifiIpStatic, wifiSubnet, wifiGateway, wifiDns1, wifiDns2;
   String weatherApiKey, weatherCity;
   String ntpServer1, ntpServer2, timezone;
-  TouchCal touch[4];   // Screen rotation calibration (0..3)
+  TouchCal touch[4]; // Screen rotation calibration (0..3)
   String mqttServer;
   int mqttPort;
   String mqttUser, mqttPassword;
   int formatHour;
   bool debug;
-  
+
   // Mappatura Dinamica Pin MCP23017 (0-15, -1 se non assegnato)
-  int8_t mcpPinLight;       
-  int8_t mcpPinWaterLevel;  
+  int8_t mcpPinLight;
+  int8_t mcpPinWaterLevel;
 };
 
 extern AppConfig cfg;
@@ -183,6 +202,5 @@ extern volatile bool g_saveConfigNeeded;
   } while (0)
 
 #endif
-
 
 #endif // APP_CONFIG_H
