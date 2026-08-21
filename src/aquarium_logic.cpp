@@ -190,7 +190,7 @@ void AquariumLogic::update() {
   static bool hasSynced = false;
   static uint32_t lastNtpSync = 0;
   bool isConn = (WiFi.status() == WL_CONNECTED);
-  if (isConn && (!hasSynced || (now - lastNtpSync >= 86400000))) {
+  if (isConn && now >= 30000 && (!hasSynced || (now - lastNtpSync >= 86400000))) {
     lastNtpSync = now;
     hasSynced = true;
     syncNTP();
@@ -200,7 +200,14 @@ void AquariumLogic::update() {
   if (now - m_lastTimeUpdate >= 1000) {
     uint32_t elapsedSec = (now - m_lastTimeUpdate) / 1000;
     m_lastTimeUpdate = now;
-    m_uptimeSeconds += elapsedSec;
+    
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year > 120) { // Year > 2020 (1900 + 120)
+      m_uptimeSeconds = timeinfo.tm_hour * 3600 + timeinfo.tm_min * 60 + timeinfo.tm_sec;
+    } else {
+      m_uptimeSeconds += elapsedSec;
+    }
+    
     evaluateSchedule();
   }
 
