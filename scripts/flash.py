@@ -68,17 +68,34 @@ def main():
             ports.append({"device": p.device, "description": p.description})
     except ImportError:
         if os.name == 'nt':
-            import winreg
+            # Tentativo 1: Usare powershell per avere i nomi completi (es. "USB-SERIAL CH340")
             try:
-                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DEVICEMAP\SERIALCOMM")
-                for i in range(256):
-                    try:
-                        val = winreg.EnumValue(key, i)
-                        ports.append({"device": val[1], "description": "Porta Seriale"})
-                    except OSError:
-                        break
+                import subprocess
+                import re
+                cmd = 'Get-WmiObject Win32_PnPEntity | Where-Object { $_.Name -match "\\(COM\\d+\\)" } | Select-Object -ExpandProperty Name'
+                out = subprocess.check_output(['powershell', '-Command', cmd], text=True, stderr=subprocess.DEVNULL)
+                for line in out.strip().split('\n'):
+                    line = line.strip()
+                    if line:
+                        m = re.search(r'\((COM\d+)\)', line)
+                        if m:
+                            ports.append({"device": m.group(1), "description": line})
             except Exception:
                 pass
+            
+            # Tentativo 2: Fallback di base sul registro di sistema (se powershell fallisce)
+            if not ports:
+                import winreg
+                try:
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DEVICEMAP\SERIALCOMM")
+                    for i in range(256):
+                        try:
+                            val = winreg.EnumValue(key, i)
+                            ports.append({"device": val[1], "description": "Porta Seriale (Nome Sconosciuto)"})
+                        except OSError:
+                            break
+                except Exception:
+                    pass
 
     selected_port = ""
     if not ports:
