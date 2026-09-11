@@ -82,6 +82,8 @@ public:
   void updateMQTT();
   void reconnectMQTT();
   void publishHomeAssistantDiscovery();
+  void resetMqttRetries() { m_mqttConnectAttempts = 0; }
+  int getMqttConnectAttempts() const { return m_mqttConnectAttempts; }
 
   // WiFi Management Methods
   bool isWifiConnected() const;
@@ -170,6 +172,8 @@ private:
   String m_wifiConnectSSID;
   uint32_t m_wifiConnectStartTime = 0;
   uint32_t m_wifiConnectResultTime = 0;
+  uint8_t m_wifiAutoRetries = 0;
+  uint8_t m_mqttConnectAttempts = 0;
 };
 
 

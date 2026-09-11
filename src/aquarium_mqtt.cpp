@@ -101,18 +101,35 @@ void AquariumLogic::reconnectMQTT() {
 
 void AquariumLogic::updateMQTT() {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
+  bool mEnabled = cfg.mqttEnabled;
   String mServer = cfg.mqttServer;
   xSemaphoreGive(g_configMutex);
 
-  if (WiFi.status() != WL_CONNECTED || mServer.length() == 0 || mServer == "0.0.0.0") return;
+  if (!mEnabled || WiFi.status() != WL_CONNECTED || mServer.length() == 0 || mServer == "0.0.0.0") return;
   
   if (!mqttClient.connected()) {
-      static unsigned long lastReconnect = 0;
-      if (millis() - lastReconnect > 5000) {
-          lastReconnect = millis();
-          reconnectMQTT();
+      if (m_mqttConnectAttempts < 3) {
+          static unsigned long lastReconnect = 0;
+          if (millis() - lastReconnect > 30000) {
+              lastReconnect = millis();
+              reconnectMQTT();
+              if (!mqttClient.connected()) {
+                  m_mqttConnectAttempts++;
+                  Serial.printf("[MQTT] Connection failed. Auto-retry %d/3\n", m_mqttConnectAttempts);
+                  if (m_mqttConnectAttempts >= 3) {
+                      Serial.println("[MQTT] Max retries reached. Auto-disabling MQTT.");
+                      xSemaphoreTake(g_configMutex, portMAX_DELAY);
+                      cfg.mqttEnabled = false;
+                      g_saveConfigNeeded = true;
+                      xSemaphoreGive(g_configMutex);
+                  }
+              } else {
+                  m_mqttConnectAttempts = 0;
+              }
+          }
       }
   } else {
+      m_mqttConnectAttempts = 0;
       mqttClient.loop();
       
       if (millis() - m_lastMqttPublish > 2000) {

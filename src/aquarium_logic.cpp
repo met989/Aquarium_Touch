@@ -58,6 +58,8 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
 
   WiFi.setHostname("aquarium-touch");
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(false);
+  m_wifiAutoRetries = 0;
   WiFi.disconnect(true);
   delay(100);
   if (password.length() > 0) {
@@ -79,34 +81,11 @@ void AquariumLogic::disconnectWifi() {
 void AquariumLogic::startAsyncWifiScan() {
   if (m_wifiScanning) return;
   m_wifiScanStatus = langManager.getText("MSG_SCANNING_BG", "Scanning...");
+  m_wifiScanning = true;
   
-  WiFi.mode(WIFI_OFF);
-  delay(100);
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
   WiFi.scanDelete();
   
-  int n = WiFi.scanNetworks(false, true); // SYNC SCAN
-  if (n == WIFI_SCAN_FAILED) {
-    m_wifiScanStatus = "Scan Failed";
-  } else if (n >= 0) {
-    m_wifiNetworkCount = (n > 12) ? 12 : n;
-    if (n == 0) {
-      m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
-    } else {
-      for (int i = 0; i < m_wifiNetworkCount; i++) {
-        m_scannedNetworks[i].ssid = WiFi.SSID(i);
-        m_scannedNetworks[i].rssi = WiFi.RSSI(i);
-        m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
-      }
-      m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
-    }
-    WiFi.scanDelete();
-  }
-  
-  m_wifiScanning = false;
-  m_wifiScanCounter++;
+  WiFi.scanNetworks(true, true); // ASYNC SCAN
 }
 
 void AquariumLogic::scanWifi() {
@@ -121,6 +100,9 @@ WifiNetworkItem AquariumLogic::getWifiNetwork(int idx) const {
 }
 
 void AquariumLogic::init() {
+  // Disabilita la riconnessione automatica per gestirla noi e non freezare
+  WiFi.setAutoReconnect(false);
+
   // Configurazione Pin Diretti
   pinMode(LIGHT_RELAY_PIN, OUTPUT);
   digitalWrite(LIGHT_RELAY_PIN, m_config.relayInverted ? HIGH : LOW);
@@ -199,7 +181,7 @@ void AquariumLogic::update() {
   static uint32_t lastPrint = 0;
   if (now - lastPrint >= 5000) {
       lastPrint = now;
-      Serial.println("AquariumLogic::update() is running!");
+      Serial.printf("AquariumLogic::update() - WiFi Status: %d, IP: %s\n", WiFi.status(), WiFi.localIP().toString().c_str());
   }
 
   // Automatic NTP Sync when Wi-Fi is connected (on first connect & every 24 hours)
@@ -242,7 +224,29 @@ void AquariumLogic::update() {
     updateBacklight();
   }
 
-  // WiFi Async Scan Polling is no longer needed since we use sync scan
+  // WiFi Async Scan Polling
+  if (m_wifiScanning) {
+    int n = WiFi.scanComplete();
+    if (n >= 0) {
+      m_wifiNetworkCount = (n > 12) ? 12 : n;
+      if (n == 0) {
+        m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
+      } else {
+        for (int i = 0; i < m_wifiNetworkCount; i++) {
+          m_scannedNetworks[i].ssid = WiFi.SSID(i);
+          m_scannedNetworks[i].rssi = WiFi.RSSI(i);
+          m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
+        }
+        m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
+      }
+      WiFi.scanDelete();
+      m_wifiScanning = false;
+      m_wifiScanCounter++;
+    } else if (n == WIFI_SCAN_FAILED) {
+      m_wifiScanStatus = "Scan Failed";
+      m_wifiScanning = false;
+    }
+  }
 
   // WiFi Connection state machine
   if (m_wifiConnectState == WIFI_CONN_CONNECTING) {
@@ -257,6 +261,22 @@ void AquariumLogic::update() {
   } else if (m_wifiConnectState == WIFI_CONN_SUCCESS || m_wifiConnectState == WIFI_CONN_FAILED) {
     if (millis() - m_wifiConnectResultTime > 5000) {
       m_wifiConnectState = WIFI_CONN_IDLE;
+    }
+  } else if (m_wifiConnectState == WIFI_CONN_IDLE) {
+    if (WiFi.status() != WL_CONNECTED && cfg.wifiSsid.length() > 0 && cfg.wifiSsid != "SSID_WIFI") {
+      if (m_wifiAutoRetries < 3) {
+        static uint32_t lastIdleRetry = 0;
+        if (millis() - lastIdleRetry > 15000) {
+          lastIdleRetry = millis();
+          m_wifiAutoRetries++;
+          Serial.printf("WiFi disconnected. Auto-retry %d/3...\n", m_wifiAutoRetries);
+          WiFi.disconnect(true);
+          if (cfg.wifiPassword.length() > 0) WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
+          else WiFi.begin(cfg.wifiSsid.c_str());
+          m_wifiConnectState = WIFI_CONN_CONNECTING;
+          m_wifiConnectStartTime = millis();
+        }
+      }
     }
   }
 

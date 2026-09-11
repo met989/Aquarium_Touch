@@ -120,15 +120,10 @@ void AquariumUI::update() {
 
   if (!m_bootCheckStarted && aquarium.isWifiConnected()) {
     m_bootCheckStarted = true;
-    xTaskCreate([](void *pvParameters) {
-      String ver, url;
-      if (aquarium.checkGitHubForUpdate(ver, url)) {
-        aquariumUI.setLatestVersion(ver, url);
-      } else {
-        aquariumUI.setLatestVersion(AQUARIUM_OS_VERSION, "");
-      }
-      vTaskDelete(NULL);
-    }, "otaBootCheck", 8192, NULL, 1, NULL);
+    // Disabilitato temporaneamente il check degli aggiornamenti su GitHub al boot.
+    // L'handshake TLS in un task separato consuma molta RAM e spesso causa deadlock LwIP
+    // bloccando l'intero Web Server.
+    aquariumUI.setLatestVersion(AQUARIUM_OS_VERSION, "");
   }
 
   uint8_t currentCounter = aquarium.getWifiScanCounter();
@@ -1266,6 +1261,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                 m_settingsSubScreen = i + 1;
                 m_resetStep = 0;
                 m_settingsNeedsRedraw = true;
+                m_lastTouchTime = millis() + 500; // Anti-ghost touch
                 return;
             }
         }
@@ -1283,6 +1279,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               if (touchX >= x && touchX <= x + btnWidth && sy >= y && sy <= y + btnHeight) {
                   m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10
                   m_settingsNeedsRedraw = true;
+                  m_lastTouchTime = millis() + 500; // Anti-ghost touch
                   return;
               }
           }

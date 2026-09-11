@@ -177,6 +177,7 @@ struct AppConfig {
   String mqttServer;
   int mqttPort;
   String mqttUser, mqttPassword;
+  bool mqttEnabled;
   int formatHour;
   bool debug;
   int8_t mcpPinLight;

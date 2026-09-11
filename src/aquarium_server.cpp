@@ -25,29 +25,18 @@ void AquariumServer::init() {
   DBG_PRINTLN("[WEB] Web Server started on 80");
 
   // Avvia il task WebServer sul Core 0 (stesso core del WiFi) per non bloccare la UI (Core 1)
-  xTaskCreatePinnedToCore(
-    [](void* arg) {
-      AquariumServer* srv = (AquariumServer*)arg;
-      while (true) {
-        if (srv->isStarted() && WiFi.status() == WL_CONNECTED) {
-          srv->handleClient();
-        }
-        vTaskDelay(pdMS_TO_TICKS(10)); // Yield
-      }
-    },
-    "WebServerTask",
-    10240, // Stack size
-    this,
-    1,     // Priorità bassa
-    NULL,
-    0      // Core 0
-  );
+  // The web server will be handled in the update() method on Core 1
+  // to avoid cross-core network deadlocks with MQTT and WiFi scanning.
 }
 
 void AquariumServer::update() {
   if (!m_started) {
     if (WiFi.status() == WL_CONNECTED) {
       init();
+    }
+  } else {
+    if (WiFi.status() == WL_CONNECTED) {
+      handleClient();
     }
   }
 }
@@ -186,7 +175,9 @@ void AquariumServer::handleApiStatus() {
   json += "\"time\":\"";           json += String(timeBuf); json += "\",";
   json += "\"date\":\"";           json += String(dateBuf); json += "\",";
   json += "\"ip\":\"";             json += WiFi.localIP().toString(); json += "\",";
-  json += "\"version\":\"";        json += jStr(String(AQUARIUM_OS_VERSION)); json += "\"";
+  json += "\"version\":\"";        json += jStr(String(AQUARIUM_OS_VERSION)); json += "\",";
+  json += "\"mqtt_enabled\":";     json += String(cfg.mqttEnabled ? "true" : "false"); json += ",";
+  json += "\"mqtt_error\":";       json += String(aquarium.getMqttConnectAttempts() >= 3 ? "true" : "false");
   json += "}";
 
   DBG_PRINTF("[WEB] /api/status JSON len=%d generated in %lu ms\n", json.length(), millis() - t);
@@ -278,12 +269,16 @@ void AquariumServer::handleApiSetNetworkSettings() {
 
 void AquariumServer::handleApiSetMqttSettings() {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
+  if (m_server.hasArg("enabled")) {
+    cfg.mqttEnabled = (m_server.arg("enabled") == "1" || m_server.arg("enabled") == "true");
+  }
   if (m_server.hasArg("server")) cfg.mqttServer = m_server.arg("server");
   if (m_server.hasArg("port"))   cfg.mqttPort   = m_server.arg("port").toInt();
   if (m_server.hasArg("user"))   cfg.mqttUser   = m_server.arg("user");
   if (m_server.hasArg("pass") && m_server.arg("pass").length() > 0)
     cfg.mqttPassword = m_server.arg("pass");
   xSemaphoreGive(g_configMutex);
+  aquarium.resetMqttRetries();
   g_saveConfigNeeded = true;
   m_server.send(200, "application/json", "{\"status\":\"ok\"}");
 }

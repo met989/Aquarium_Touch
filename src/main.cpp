@@ -66,6 +66,7 @@ void setDefaults() {
     cfg.touch[i] = {0, 0, 0, 0};
   cfg.mqttServer = "0.0.0.0";
   cfg.mqttPort = 1883;
+  cfg.mqttEnabled = false;
   cfg.mqttUser = "utente";
   cfg.mqttPassword = "pass";
   cfg.formatHour = 24;
@@ -153,6 +154,8 @@ bool parseConfigLine(const String &rawLine) {
     cfg.touch[3].maxY = val.toInt();
   else if (key.equalsIgnoreCase("mqtt_server"))
     cfg.mqttServer = stripQuotes(val);
+  else if (key.equalsIgnoreCase("mqtt_enabled"))
+    cfg.mqttEnabled = (val == "1" || val.equalsIgnoreCase("true"));
   else if (key.equalsIgnoreCase("mqtt_port"))
     cfg.mqttPort = val.toInt();
   else if (key.equalsIgnoreCase("mqtt_user"))
@@ -228,6 +231,7 @@ String buildConfigText() {
     out += "touch_min_y" + String(i) + "=" + String(cfg.touch[i].minY) + "\n";
     out += "touch_max_y" + String(i) + "=" + String(cfg.touch[i].maxY) + "\n";
   }
+  out += "mqtt_enabled=" + String(cfg.mqttEnabled ? "1" : "0") + "\n";
   out += "mqtt_server=\"" + cfg.mqttServer + "\"\n";
   out += "mqtt_port=" + String(cfg.mqttPort) + "\n";
   out += "mqtt_user=\"" + cfg.mqttUser + "\"\n";
@@ -871,9 +875,9 @@ void loop() {
 
   if (!g_screenIsOff) {
     aquariumUI.update();
-  } else {
-    aquarium.update();
   }
+  aquarium.update();
+
   aquariumServer.update();
   
   if (g_saveConfigNeeded) {
