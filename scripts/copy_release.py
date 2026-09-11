@@ -13,15 +13,14 @@ import shutil
 import re
 
 def get_version(env):
-    config_path = os.path.join(env.get("PROJECT_DIR"), "include", "config.h")
+    version_file = os.path.join(env.get("PROJECT_DIR"), "version.json")
     try:
-        with open(config_path, "r") as f:
-            content = f.read()
-            match = re.search(r'#define\s+AQUARIUM_OS_VERSION\s+"([^"]+)"', content)
-            if match:
-                return match.group(1)
+        import json
+        with open(version_file, "r") as f:
+            data = json.load(f)
+            return data.get("version", "unknown")
     except Exception as e:
-        print(f"Errore nella lettura di config.h: {e}")
+        print(f"Errore nella lettura di version.json: {e}")
     return "unknown"
 
 def copy_bin(source, target, env):
