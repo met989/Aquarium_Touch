@@ -63,7 +63,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Soglie di temperatura ottimale configurabili (min/max predefiniti: 24.0°C – 27.0°C) con isteresi di 0.3°C e calibrazione tramite offset.
   - Segnalazione visiva degli stati: *Ottimale* (Verde Smeraldo), *Troppo Freddo* (Blu), *Troppo Caldo* (Rosso Corallo).
 - **Gestione Illuminazione & Automatizzazione:**
-  - Controllo output relè per la lampada o apparecchiatura dell'acquario (PIN 17).
+  - Controllo output relè per la lampada o apparecchiatura dell'acquario (PIN 27).
   - Logica relè configurabile: *Attivo HIGH* o *Attivo LOW* (Relè invertito).
   - Modalità automatica a orario (es. Accensione ore 08:00, Spegnimento ore 20:00).
   - Override manuale rapido da touch screen o da interfaccia web.
@@ -114,7 +114,11 @@ Tutte le definizioni dei pin e dei parametri hardware sono accentrate in `includ
 | | `TOUCH_MISO` | `GPIO 39` | SPI MISO Touch |
 | | `TOUCH_SCK` | `GPIO 25` | SPI Clock Touch |
 | **Scheda SD** | `SD_CS` | `GPIO 5` | Chip Select SD Card |
-| **Sensore Temperatura** | `TEMP_SENSOR_PIN` | `GPIO 27` | Bus 1-Wire DS18B20 (tramite connettore CN1, pull-up integrato o richiesta 4.7kΩ) |
+| **Sensore Temperatura** | `TEMP_SENSOR_PIN` | `GPIO 22` | Bus 1-Wire DS18B20 (tramite connettore CN1, pull-up integrato o richiesta 4.7kΩ) |
+| **Relè Luci** | `LIGHT_RELAY_PIN` | `GPIO 27` | Output per il controllo della plafoniera (su CN1) |
+| **Sensore pH** | `PH_SENSOR_PIN` | `GPIO 35` | Input analogico per la lettura del sensore pH (su P3) |
+| **Bus I2C (SDA)** | `I2C_SDA_PIN` | `GPIO 1` | Pin SDA per dispositivi I2C aggiuntivi (P1 TX) |
+| **Bus I2C (SCL)** | `I2C_SCL_PIN` | `GPIO 3` | Pin SCL per dispositivi I2C aggiuntivi (P1 RX) |
 | **LED Stato (Rosso)** | `LED_RED_PIN` | `GPIO 4` | Indica un problema o errore di sistema |
 | **LED Stato (Verde)** | `LED_GREEN_PIN` | `GPIO 16` | Indica sistema completamente funzionante e pronto |
 | **LED Stato (Blu)** | `LED_BLUE_PIN` | `GPIO 17` | Indica caricamento all'avvio in corso |
