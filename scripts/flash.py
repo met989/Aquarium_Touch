@@ -61,20 +61,33 @@ def main():
     print(f"-> Selezionato: {os.path.basename(selected_bin)}\n")
 
     # Ricerca Porte COM
+    ports = []
     try:
         import serial.tools.list_ports
-        ports = list(serial.tools.list_ports.comports())
+        for p in serial.tools.list_ports.comports():
+            ports.append({"device": p.device, "description": p.description})
     except ImportError:
-        ports = []
+        if os.name == 'nt':
+            import winreg
+            try:
+                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DEVICEMAP\SERIALCOMM")
+                for i in range(256):
+                    try:
+                        val = winreg.EnumValue(key, i)
+                        ports.append({"device": val[1], "description": "Porta Seriale"})
+                    except OSError:
+                        break
+            except Exception:
+                pass
 
     selected_port = ""
     if not ports:
-        print("Nessuna porta COM rilevata automaticamente o libreria pyserial mancante.")
+        print("Nessuna porta COM rilevata automaticamente. (Pyserial non installato e winreg fallito).")
         selected_port = input("Scrivi la porta COM manualmente (es. COM3): ").strip()
     else:
         print("Porte COM disponibili:")
         for i, p in enumerate(ports):
-            print(f"[{i + 1}] {p.device} - {p.description}")
+            print(f"[{i + 1}] {p['device']} - {p['description']}")
         
         p_choice = input("\nSeleziona la porta COM della tua scheda [predefinito: 1]: ").strip()
         if not p_choice:
@@ -83,7 +96,7 @@ def main():
             p_index = int(p_choice) - 1
             if p_index < 0 or p_index >= len(ports):
                 raise ValueError
-            selected_port = ports[p_index].device
+            selected_port = ports[p_index]['device']
         except ValueError:
             print("Selezione non valida.")
             sys.exit(1)
