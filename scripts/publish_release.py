@@ -3,21 +3,20 @@ import re
 import sys
 
 def get_version():
-    config_path = os.path.join("include", "config.h")
+    version_file = "version.json"
     try:
-        with open(config_path, "r") as f:
-            content = f.read()
-            match = re.search(r'#define\s+AQUARIUM_OS_VERSION\s+"([^"]+)"', content)
-            if match:
-                return match.group(1)
+        import json
+        with open(version_file, "r") as f:
+            data = json.load(f)
+            return data.get("version", None)
     except Exception as e:
-        print(f"Errore nella lettura di config.h: {e}")
+        print(f"Errore nella lettura di version.json: {e}")
     return None
 
 def main():
     version = get_version()
     if not version:
-        print("Errore: Impossibile trovare la versione in include/config.h")
+        print("Errore: Impossibile trovare la versione in version.json")
         sys.exit(1)
 
     tag = f"v{version}"
