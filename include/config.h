@@ -45,10 +45,14 @@
 // ------------------------------------------------------------------------------
 #define SD_CS 5
 #define BOOT_BTN 0
-// #define TEMP_SENSOR_PIN 27 // (Vecchia assegnazione)
-#define I2C_SDA_PIN 27   // I2C SDA per MCP23017 e DS2482
-#define I2C_SCL_PIN 22   // I2C SCL per MCP23017 e DS2482
-#define LED_RED_PIN 4    // LED Stato: Problema/Errore
+#define TEMP_SENSOR_PIN 22 // DS18B20 (su CN1)
+#define LIGHT_RELAY_PIN 27 // Relè 1 Luci (su CN1)
+#define PH_SENSOR_PIN 35   // Sensore pH analogico (su P3)
+
+#define I2C_SDA_PIN 1      // P1 TX
+#define I2C_SCL_PIN 3      // P1 RX
+
+#define LED_RED_PIN 4      // LED Stato: Problema/Errore
 #define LED_GREEN_PIN 16 // LED Stato: Funzionante e Pronto
 #define LED_BLUE_PIN 17  // LED Stato: Caricamento all'avvio
 #define LDR_PIN 34       // Fotoresistore GT36516 integrato
@@ -175,8 +179,6 @@ struct AppConfig {
   String mqttUser, mqttPassword;
   int formatHour;
   bool debug;
-
-  // Mappatura Dinamica Pin MCP23017 (0-15, -1 se non assegnato)
   int8_t mcpPinLight;
   int8_t mcpPinWaterLevel;
 };

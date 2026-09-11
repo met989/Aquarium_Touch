@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <Adafruit_MCP23X17.h>
 #include "config.h"
 
 enum WifiConnectState {
@@ -48,12 +49,14 @@ public:
 
   // Temperature Methods
   float getTemperature() const { return m_currentTemp; }
+  float getPhValue() const { return m_currentPh; }
+  bool isWaterLevelOk();
   float getMinTemp() const { return m_minTemp; }
   float getMaxTemp() const { return m_maxTemp; }
   bool isSensorConnected() const { return m_sensorConnected; }
   TempStatus getTempStatus() const;
 
-  // Light & Relay Control
+  // Light & Relay  // Getters
   bool isLightOn() const { return m_lightOn; }
   bool isAutoSchedule() const { return m_config.autoSchedule; }
   bool isRelayInverted() const { return m_config.relayInverted; }
@@ -73,6 +76,12 @@ public:
   // OTA Update
   bool checkGitHubForUpdate(String& outVersion, String& outUrl);
   void performOTAUpdate(const String& url);
+
+  // MQTT
+  void initMQTT();
+  void updateMQTT();
+  void reconnectMQTT();
+  void publishHomeAssistantDiscovery();
 
   // WiFi Management Methods
   bool isWifiConnected() const;
@@ -126,15 +135,20 @@ public:
 
 private:
   void readSensor();
-  void simulateSensor();
   void evaluateSchedule();
   void applyLightHardware();
 
   AquariumConfig m_config;
-  float m_currentTemp = 25.4f;
-  float m_minTemp = 24.8f;
-  float m_maxTemp = 26.1f;
+  float m_currentTemp = 0.0f;
+  float m_minTemp = 100.0f;
+  float m_maxTemp = -100.0f;
   bool m_sensorConnected = false;
+  
+  float m_currentPh = 7.0f;
+  uint32_t m_lastPhReadTime = 0;
+
+  Adafruit_MCP23X17 m_mcp;
+  bool m_mcpReady = false;
 
   bool m_lightOn = false;
   bool m_manualOverride = false;
@@ -142,6 +156,7 @@ private:
   uint16_t m_currentLdrValue = 0;
   uint32_t m_lastSensorRead = 0;
   uint32_t m_lastTimeUpdate = 0;
+  uint32_t m_lastMqttPublish = 0;
   uint32_t m_uptimeSeconds = 32400; // Simulated start at 09:00:00 AM
   String m_ntpStatus = "NTP: Inattivo";
   String m_wifiScanStatus = "Premi Scansiona";

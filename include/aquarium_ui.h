@@ -76,6 +76,7 @@ private:
   void drawSubScreenHardware();
   void drawSubScreenScreen();
   void drawWifiKeyboard();
+  void handleKeyboardTouch(int touchX, int touchY);
 
 
   // Custom Widgets

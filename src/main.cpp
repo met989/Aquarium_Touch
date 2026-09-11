@@ -69,7 +69,7 @@ void setDefaults() {
   cfg.mqttUser = "utente";
   cfg.mqttPassword = "pass";
   cfg.formatHour = 24;
-  cfg.debug = true;
+  cfg.debug = false;
 }
 
 bool parseConfigLine(const String &rawLine) {
@@ -234,8 +234,6 @@ String buildConfigText() {
   out += "mqtt_password=\"" + cfg.mqttPassword + "\"\n";
   out += "format_hour=" + String(cfg.formatHour) + "\n";
   out += "debug=" + String(cfg.debug ? "true" : "false") + "\n";
-  out += "mcp_pin_light=" + String(cfg.mcpPinLight) + "\n";
-  out += "mcp_pin_level=" + String(cfg.mcpPinWaterLevel) + "\n";
 
   const AquariumConfig &aq = aquarium.getConfig();
   out += "light_on_h=" + String(aq.lightOnHour) + "\n";
@@ -765,6 +763,12 @@ void setup() {
     while (true)
       delay(1000);
   }
+
+  langManager.init();
+  bool created = false, updated = false;
+  loadConfigFromSD(created, updated);
+  applyScreenMode();
+
   gif.begin(LITTLE_ENDIAN_PIXELS);
   if (gif.open("/boot.gif", GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
     tft.fillScreen(TFT_BLACK);
@@ -789,12 +793,6 @@ void setup() {
     showMessage("AQUARIUM OS", "Starting system...", TFT_BLACK, COLOR_CYAN_GLOW);
     delay(1500); // Allow time to read if no gif
   }
-
-  langManager.init();
-
-  bool created = false, updated = false;
-  loadConfigFromSD(created, updated);
-  applyScreenMode();
 
   touchSPI = new SPIClass(HSPI);
   touchSPI->begin(TOUCH_SCK, TOUCH_MISO, TOUCH_MOSI, TOUCH_CS);

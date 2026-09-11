@@ -10,7 +10,7 @@ public:
   void init();
   void update();
   bool isStarted() const { return m_started; }
-  void handleClient() { m_server.handleClient(); }
+  void handleClient();
 
 private:
   void setupRoutes();

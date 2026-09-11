@@ -11,6 +11,7 @@ extern bool writeWholeConfigFileSafe();
 
 #include "../include/embedded_web.h"
 #include "../include/embedded_languages.h"
+#include <ElegantOTA.h>
 
 
 AquariumServer::AquariumServer() : m_server(80), m_started(false) {}
@@ -19,6 +20,7 @@ void AquariumServer::init() {
   if (m_started) return;
   setupRoutes();
   m_server.begin();
+  ElegantOTA.begin(&m_server);
   m_started = true;
   DBG_PRINTLN("[WEB] Web Server started on 80");
 
@@ -50,6 +52,11 @@ void AquariumServer::update() {
   }
 }
 
+void AquariumServer::handleClient() {
+  m_server.handleClient();
+  ElegantOTA.loop();
+}
+
 void AquariumServer::setupRoutes() {
   m_server.on("/",                         HTTP_GET,  [this]() { handleRoot(); });
   m_server.on("/api/status",               HTTP_GET,  [this]() { handleApiStatus(); });
@@ -77,6 +84,11 @@ void AquariumServer::setupRoutes() {
   m_server.on("/api/scan_i2c",             HTTP_GET,  [this]() { handleApiScanI2C(); });
   m_server.on("/api/config/raw",           HTTP_GET,  [this]() { handleApiConfigRawGet(); });
   m_server.on("/api/config/raw",           HTTP_POST, [this]() { handleApiConfigRawPost(); });
+  m_server.on("/api/reboot",               HTTP_POST, [this]() { 
+    m_server.send(200, "application/json", "{\"status\":\"rebooting\"}"); 
+    delay(500); 
+    ESP.restart(); 
+  });
 }
 
 // AppConfig is defined in config.h (included via aquarium_logic.h)
@@ -87,6 +99,9 @@ void AquariumServer::handleRoot() {
   uint32_t t = millis();
   
   m_server.sendHeader("Content-Encoding", "gzip");
+  m_server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  m_server.sendHeader("Pragma", "no-cache");
+  m_server.sendHeader("Expires", "-1");
   m_server.send_P(200, PSTR("text/html; charset=utf-8"), (const char*)INDEX_HTML_GZ, INDEX_HTML_GZ_LEN);
   
   DBG_PRINTF("[WEB] Sent INDEX_HTML_GZ in %lu ms\n", millis() - t);
@@ -166,8 +181,6 @@ void AquariumServer::handleApiStatus() {
   json += "\"mqtt_user\":\"";      json += jStr(cfg.mqttUser);     json += "\",";
   json += "\"debug\":";            json += String(cfg.debug ? "true" : "false"); json += ",";
   json += "\"screen_mode\":";      json += String(cfg.screenMode); json += ",";
-  json += "\"mcp_pin_light\":";    json += String(cfg.mcpPinLight); json += ",";
-  json += "\"mcp_pin_level\":";    json += String(cfg.mcpPinWaterLevel); json += ",";
   json += "\"lang_file\":\"";      json += jStr(langManager.getActiveLanguageFile()); json += "\",";
   json += "\"lang_name\":\"";      json += jStr(langManager.getActiveLanguageName()); json += "\",";
   json += "\"time\":\"";           json += String(timeBuf); json += "\",";
@@ -278,8 +291,10 @@ void AquariumServer::handleApiSetMqttSettings() {
 void AquariumServer::handleApiSetSystemSettings() {
   if (m_server.hasArg("debug"))       cfg.debug      = (m_server.arg("debug") == "true");
   if (m_server.hasArg("screen_mode")) cfg.screenMode = (uint8_t)m_server.arg("screen_mode").toInt();
-  g_saveConfigNeeded = true;
-  m_server.send(200, "application/json", "{\"status\":\"ok\"}");
+  writeWholeConfigFileSafe(); // Salva subito
+  m_server.send(200, "application/json", "{\"status\":\"rebooting\"}");
+  delay(300);
+  ESP.restart();
 }
 
 void AquariumServer::handleApiSetScreensaver() {
@@ -294,12 +309,6 @@ void AquariumServer::handleApiSetScreensaver() {
 
 void AquariumServer::handleApiSetHardwareSettings() {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
-  if (m_server.hasArg("mcp_pin_light")) {
-    cfg.mcpPinLight = (int8_t)m_server.arg("mcp_pin_light").toInt();
-  }
-  if (m_server.hasArg("mcp_pin_level")) {
-    cfg.mcpPinWaterLevel = (int8_t)m_server.arg("mcp_pin_level").toInt();
-  }
   xSemaphoreGive(g_configMutex);
   
   g_saveConfigNeeded = true;

@@ -72,6 +72,8 @@
     <div class="header-badges">
       <div class="badge badge-cyan">IP: <span id="ipAddr">...</span></div>
       <div class="badge badge-gold" id="wifiStatusBadge">Wi-Fi: --</div>
+      <button class="badge badge-gold" onclick="window.location.href='/update'" style="cursor:pointer; background:rgba(255,215,0,0.15); border:1px solid var(--gold); color:var(--gold);">🔄 <span data-i18n="BTN_OTA_UPDATE">OTA Update</span></button>
+      <button class="badge" onclick="if(confirm('Riavviare il sistema?')) { fetch('/api/reboot', {method: 'POST'}).then(() => { setTimeout(() => window.location.reload(), 3000); }); }" style="cursor:pointer; background:rgba(255,82,82,0.15); border:1px solid var(--coral); color:var(--coral);">🛑 <span data-i18n="BTN_REBOOT">Riavvia</span></button>
     </div>
   </header>
 
@@ -93,7 +95,7 @@
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_OFF_TIME">Spegnimento</span></span><span class="stat-value" id="statOffTime">--:--</span></div>
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_RELAY_POL">Polarità Relè</span></span><span class="stat-value" id="statRelay">--</span></div>
       <div class="flex-row" style="margin-top:14px">
-        <button class="btn btn-gold" onclick="toggleLight()">⚡ <span data-i18n="BTN_TOGGLE_LIGHT">Commuta Luce</span></button>
+        <button class="btn btn-gold" id="btnToggleLight" onclick="toggleLight()">⚡ <span data-i18n="BTN_TOGGLE_LIGHT">Commuta Luce</span></button>
         <button class="btn btn-outline" onclick="toggleAuto()">🔄 <span data-i18n="BTN_TOGGLE_AUTO">Auto/Manuale</span></button>
       </div>
     </div>
@@ -184,30 +186,7 @@
       <div class="form-group"><label><span data-i18n="LABEL_MQTT_PASS">Password MQTT</span>:</label><input type="password" id="cfgMqttPass" data-i18n-placeholder="MSG_UNCHANGED_IF_EMPTY" placeholder="(invariata se vuoto)"></div>
       <button class="btn btn-cyan" onclick="saveMqttSettings()">💾 <span data-i18n="BTN_SAVE_MQTT">Salva Impostazioni MQTT</span></button>
     </div>
-    <!-- HARDWARE & I2C -->
-    <div class="card">
-      <div class="card-title">🔌 <span>Mappatura Hardware (I2C)</span></div>
-      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px">Assegna le funzioni ai pin del chip MCP23017. L'indirizzo I2C base del chip è fisso a 0x20. Seleziona OFF per disabilitare.</div>
-      
-      <div class="flex-row" style="gap:10px; align-items:center;">
-          <div class="form-group" style="flex:1"><label>Pin Luce Principale:</label>
-            <select id="cfgMcpLight"><option value="-1">OFF</option><option value="0">Pin 0</option><option value="1">Pin 1</option><option value="2">Pin 2</option><option value="3">Pin 3</option><option value="4">Pin 4</option><option value="5">Pin 5</option><option value="6">Pin 6</option><option value="7">Pin 7</option><option value="8">Pin 8</option><option value="9">Pin 9</option><option value="10">Pin 10</option><option value="11">Pin 11</option><option value="12">Pin 12</option><option value="13">Pin 13</option><option value="14">Pin 14</option><option value="15">Pin 15</option></select>
-          </div>
-          <div class="form-group" style="flex:1"><label>Pin Sensore Livello Acqua:</label>
-            <select id="cfgMcpLevel"><option value="-1">OFF</option><option value="0">Pin 0</option><option value="1">Pin 1</option><option value="2">Pin 2</option><option value="3">Pin 3</option><option value="4">Pin 4</option><option value="5">Pin 5</option><option value="6">Pin 6</option><option value="7">Pin 7</option><option value="8">Pin 8</option><option value="9">Pin 9</option><option value="10">Pin 10</option><option value="11">Pin 11</option><option value="12">Pin 12</option><option value="13">Pin 13</option><option value="14">Pin 14</option><option value="15">Pin 15</option></select>
-          </div>
-      </div>
-      
-      <button class="btn btn-cyan" onclick="saveHardwareSettings()">💾 Salva Mappatura Hardware</button>
-      
-      <hr class="divider">
-      <div class="flex-row" style="align-items:center; gap: 15px;">
-          <button class="btn btn-outline" style="flex:0.5" onclick="scanI2C()">🔍 Esegui Scansione I2C</button>
-          <div style="flex: 1; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-            <strong style="color: var(--emerald-green);" id="i2cScanResult">Premi per scansionare i dispositivi I2C collegati.</strong>
-          </div>
-      </div>
-    </div>
+
 
     <!-- SISTEMA -->
     <div class="card">
@@ -227,7 +206,7 @@
           <option value="1" data-i18n="OPT_MODE1">Rotazione 2</option>
         </select>
       </div>
-      <button class="btn btn-outline" onclick="saveSystemSettings()">💾 <span data-i18n="BTN_SAVE_SYS">Salva Impostazioni Sistema</span></button>
+      <button class="btn btn-outline" onclick="saveSystemSettings()">💾 <span data-i18n="BTN_SAVE_SYS">Salva Imp. di Sistema (Riavvia ESP32)</span></button>
     </div>
     <div class="card">
       <div class="card-title">🌙 <span data-i18n="TITLE_SCREENSAVER">Risparmio Energia (Screensaver)</span></div>
@@ -340,7 +319,7 @@
       document.getElementById('statFmtDate').innerText = DATE_FMTS[d.date_format] || '--';
       document.getElementById('statNtp1').innerText = d.ntp_server1 || '--';
       const active = document.activeElement;
-      if (!active || active.tagName !== 'INPUT') {
+      if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'SELECT' && active.tagName !== 'TEXTAREA')) {
         document.getElementById('cfgTempMin').value = parseFloat(d.temp_min).toFixed(1);
         document.getElementById('cfgTempMax').value = parseFloat(d.temp_max).toFixed(1);
         document.getElementById('cfgTempOffset').value = parseFloat(d.temp_offset).toFixed(1);
@@ -365,8 +344,6 @@
         document.getElementById('cfgDebug').value = d.debug ? 'true' : 'false';
         document.getElementById('cfgScreenMode').value = d.screen_mode || 1;
         document.getElementById('cfgScreensaver').value = d.screensaver_t || 0;
-        document.getElementById('cfgMcpLight').value = d.mcp_pin_light;
-        document.getElementById('cfgMcpLevel').value = d.mcp_pin_level;
       }
     } catch(e) { console.error('API Error:', e); }
   }
@@ -392,20 +369,6 @@
     await fetch('/api/settings/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }
-  async function saveHardwareSettings() {
-    const b='mcp_pin_light='+document.getElementById('cfgMcpLight').value+'&mcp_pin_level='+document.getElementById('cfgMcpLevel').value;
-    await fetch('/api/settings/hardware',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
-    showToast('Mappatura I2C Salvata!'); updateStatus();
-  }
-  async function scanI2C() {
-    const el = document.getElementById('i2cScanResult');
-    el.innerText = 'Scansione in corso...';
-    try {
-      const res = await fetch('/api/scan_i2c');
-      const d = await res.json();
-      el.innerText = d.result;
-    } catch(e) { el.innerText = 'Errore scansione I2C'; }
-  }
   async function triggerNtpSync() { await fetch('/api/ntp/sync',{method:'POST'}); showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus(); }
   async function saveWifiSettings() {
     const b='ssid='+encodeURIComponent(document.getElementById('cfgWifiSsid').value)+'&pass='+encodeURIComponent(document.getElementById('cfgWifiPass').value);
@@ -429,8 +392,9 @@
   }
   async function saveSystemSettings() {
     const b='debug='+document.getElementById('cfgDebug').value+'&screen_mode='+document.getElementById('cfgScreenMode').value;
+    showToast(i18nDict['BTN_APPLY_LANG'] || 'Restarting...');
     await fetch('/api/settings/system',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
-    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+    setTimeout(()=>{location.reload();},3500);
   }
   async function saveScreensaverSettings() {
     await fetch('/api/settings/screensaver',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'screensaver_t='+document.getElementById('cfgScreensaver').value});

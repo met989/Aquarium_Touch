@@ -12,21 +12,14 @@
 
 
 #include <Wire.h>
-#include <Adafruit_MCP23X17.h>
-// #include <DS2482.h> // Da decommentare quando arriva l'hardware
-// #include <DallasTemperature.h>
 
-Adafruit_MCP23X17 mcp;
-bool mcp_connected = false;
-
-// Predisposizione per il bridge 1-Wire I2C
-// DS2482 ds(0);
-// DallasTemperature sensors(&ds);
+OneWire oneWire(TEMP_SENSOR_PIN);
+DallasTemperature sensors(&oneWire);
 
 AquariumLogic aquarium;
 
 AquariumLogic::AquariumLogic() {
-  // Configurazione base I2C
+  // Constructor
 }
 
 bool AquariumLogic::isWifiConnected() const {
@@ -63,6 +56,7 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   m_wifiConnectSSID = ssid;
   xSemaphoreGive(g_configMutex);
 
+  WiFi.setHostname("aquarium-touch");
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(true);
   delay(100);
@@ -85,9 +79,34 @@ void AquariumLogic::disconnectWifi() {
 void AquariumLogic::startAsyncWifiScan() {
   if (m_wifiScanning) return;
   m_wifiScanStatus = langManager.getText("MSG_SCANNING_BG", "Scanning...");
-  m_wifiScanning = true;
-  WiFi.scanDelete(); // Ensure old results are cleared
-  WiFi.scanNetworks(true, true);
+  
+  WiFi.mode(WIFI_OFF);
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+  WiFi.scanDelete();
+  
+  int n = WiFi.scanNetworks(false, true); // SYNC SCAN
+  if (n == WIFI_SCAN_FAILED) {
+    m_wifiScanStatus = "Scan Failed";
+  } else if (n >= 0) {
+    m_wifiNetworkCount = (n > 12) ? 12 : n;
+    if (n == 0) {
+      m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
+    } else {
+      for (int i = 0; i < m_wifiNetworkCount; i++) {
+        m_scannedNetworks[i].ssid = WiFi.SSID(i);
+        m_scannedNetworks[i].rssi = WiFi.RSSI(i);
+        m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
+      }
+      m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
+    }
+    WiFi.scanDelete();
+  }
+  
+  m_wifiScanning = false;
+  m_wifiScanCounter++;
 }
 
 void AquariumLogic::scanWifi() {
@@ -102,31 +121,27 @@ WifiNetworkItem AquariumLogic::getWifiNetwork(int idx) const {
 }
 
 void AquariumLogic::init() {
-  // Il relè verrà mappato in futuro su altri pin/espansioni.
-
-  // 1. Inizializzazione Bus I2C
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  // Configurazione Pin Diretti
+  pinMode(LIGHT_RELAY_PIN, OUTPUT);
+  digitalWrite(LIGHT_RELAY_PIN, m_config.relayInverted ? HIGH : LOW);
+  m_lightOn = false;
   
-  // 2. Inizializzazione MCP23017 (Relè)
-  if (!mcp.begin_I2C(0x20)) {
-    Serial.println("Errore: MCP23017 non trovato sul bus I2C!");
-    mcp_connected = false;
+  // Init I2C & MCP23017
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  if (m_mcp.begin_I2C()) {
+    m_mcpReady = true;
+    if (cfg.mcpPinWaterLevel >= 0) {
+      m_mcp.pinMode(cfg.mcpPinWaterLevel, INPUT_PULLUP);
+    }
+    // Set other pins as needed
   } else {
-    Serial.println("MCP23017 Inizializzato con successo.");
-    mcp_connected = true;
-    
-    // Configura i pin dinamici (se definiti)
-    if (cfg.mcpPinLight >= 0 && cfg.mcpPinLight < 16) {
-      mcp.pinMode(cfg.mcpPinLight, OUTPUT);
-    }
-    if (cfg.mcpPinWaterLevel >= 0 && cfg.mcpPinWaterLevel < 16) {
-      mcp.pinMode(cfg.mcpPinWaterLevel, INPUT_PULLUP);
-    }
+    m_mcpReady = false;
   }
+  
+  pinMode(PH_SENSOR_PIN, ANALOG);
+  // TEMP_SENSOR_PIN (22) sarà gestito dalla libreria DS18B20/OneWire
 
-  // 3. Inizializzazione Sensore Temperatura (DS2482)
-  // TODO: Da abilitare quando presente il DS2482
-  /*
+  // 3. Inizializzazione Sensore Temperatura (DS18B20 su 1-Wire)
   sensors.begin();
   int deviceCount = sensors.getDeviceCount();
   if (deviceCount > 0) {
@@ -136,7 +151,6 @@ void AquariumLogic::init() {
   } else {
     m_sensorConnected = false;
   }
-  */
   // 4. LDR and Backlight PWM setup
   pinMode(LDR_PIN, ANALOG);
   analogSetAttenuation(ADC_0db); // Massima sensibilità a bassa tensione
@@ -145,12 +159,10 @@ void AquariumLogic::init() {
   ledcAttachPin(TFT_BL, 0);
   updateBacklight(); // Imposta la luminosità iniziale
 
-  m_sensorConnected = false; // Fallback simulation finché non c'è l'hardware
-
-
   loadConfigSD();
   evaluateSchedule();
   applyLightHardware();
+  initMQTT();
 
   // 4. Time Update
   m_lastTimeUpdate = millis();
@@ -158,18 +170,22 @@ void AquariumLogic::init() {
 
 String AquariumLogic::scanI2C() const {
   String result = "";
-  byte error, address;
   int nDevices = 0;
-  for(address = 1; address < 127; address++ ) {
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
+  for(byte address = 1; address < 127; address++ ) {
+    Wire.requestFrom(address, (uint8_t)1, (uint8_t)true);
+    bool ok = (Wire.available() > 0);
+    while (Wire.available()) {
+        Wire.read();
+    }
+    
+    if (ok) {
       if (nDevices > 0) result += ", ";
       result += "0x";
       if (address < 16) result += "0";
       result += String(address, HEX);
       nDevices++;
     }
+    delay(1);
   }
   if (nDevices == 0) {
     result = "Nessun dispositivo I2C trovato";
@@ -226,30 +242,7 @@ void AquariumLogic::update() {
     updateBacklight();
   }
 
-  // WiFi Async Scan Polling
-  if (m_wifiScanning) {
-    int n = WiFi.scanComplete();
-    if (n == WIFI_SCAN_FAILED) {
-      m_wifiScanStatus = "Scan Failed";
-      m_wifiScanning = false;
-      m_wifiScanCounter++;
-    } else if (n >= 0) {
-      m_wifiNetworkCount = (n > 12) ? 12 : n;
-      if (n == 0) {
-        m_wifiScanStatus = langManager.getText("MSG_NO_NETWORKS", "No networks found");
-      } else {
-        for (int i = 0; i < m_wifiNetworkCount; i++) {
-          m_scannedNetworks[i].ssid = WiFi.SSID(i);
-          m_scannedNetworks[i].rssi = WiFi.RSSI(i);
-          m_scannedNetworks[i].open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
-        }
-        m_wifiScanStatus = String(n) + " " + langManager.getText("MSG_NETWORKS_FOUND", "networks found");
-      }
-      WiFi.scanDelete();
-      m_wifiScanning = false;
-      m_wifiScanCounter++;
-    }
-  }
+  // WiFi Async Scan Polling is no longer needed since we use sync scan
 
   // WiFi Connection state machine
   if (m_wifiConnectState == WIFI_CONN_CONNECTING) {
@@ -266,41 +259,62 @@ void AquariumLogic::update() {
       m_wifiConnectState = WIFI_CONN_IDLE;
     }
   }
+
+  updateMQTT();
 }
 
 
 void AquariumLogic::readSensor() {
+  if (!m_sensorConnected) {
+    sensors.begin();
+    if (sensors.getDeviceCount() > 0) {
+      m_sensorConnected = true;
+      sensors.setWaitForConversion(false);
+      sensors.requestTemperatures();
+    }
+  }
+
   if (m_sensorConnected) {
-    // TODO: Lettura I2C dal DS2482
-    /*
     float rawT = sensors.getTempCByIndex(0);
     sensors.requestTemperatures(); // request next conversion
 
-    if (rawT > -50.0f && rawT < 85.0f) {
+    // 85.0f is power-on default, -127.0f is error
+    if (rawT == -127.0f) {
+      m_sensorConnected = false; // Sensor disconnected
+    } else if (rawT != 85.0f) {
       float filtered = rawT + m_config.tempOffset;
-      m_currentTemp = m_currentTemp * 0.7f + filtered * 0.3f;
+      if (m_currentTemp == 0.0f) {
+        m_currentTemp = filtered; // first valid read
+      } else {
+        m_currentTemp = m_currentTemp * 0.7f + filtered * 0.3f;
+      }
       if (m_currentTemp < m_minTemp) m_minTemp = m_currentTemp;
       if (m_currentTemp > m_maxTemp) m_maxTemp = m_currentTemp;
-      return;
     }
-    */
   }
 
-  // Fallback Simulation if hardware sensor is absent/disconnected
-  simulateSensor();
+  // Leggi pH ogni secondo (evita spam)
+  if (millis() - m_lastPhReadTime > 1000) {
+    m_lastPhReadTime = millis();
+    int rawPh = analogRead(PH_SENSOR_PIN);
+    float voltage = (rawPh / 4095.0f) * 3.3f;
+    
+    // Formula placeholder (lineare). L'utente fornirà i valori di calibrazione.
+    // Esempio generico: pH = 3.5 * voltage + offset
+    float calculatedPh = 3.5f * voltage; 
+    
+    // Media mobile semplice
+    m_currentPh = (m_currentPh == 7.0f) ? calculatedPh : (m_currentPh * 0.8f + calculatedPh * 0.2f);
+  }
 }
 
-void AquariumLogic::simulateSensor() {
-  // Realistic smooth sinusoidal aquarium temperature around 25.5°C
-  float timeInHours = (float)(m_uptimeSeconds % 86400) / 3600.0f;
-  float wave = sinf(timeInHours * 0.261799f); // 24h period
-  float noise = ((float)(rand() % 100) - 50.0f) * 0.002f;
-
-  float simT = 25.4f + wave * 0.8f + noise + m_config.tempOffset;
-  m_currentTemp = m_currentTemp * 0.85f + simT * 0.15f;
-
-  if (m_currentTemp < m_minTemp) m_minTemp = m_currentTemp;
-  if (m_currentTemp > m_maxTemp) m_maxTemp = m_currentTemp;
+bool AquariumLogic::isWaterLevelOk() {
+  if (m_mcpReady && cfg.mcpPinWaterLevel >= 0) {
+    // Assume LOW = acqua assente (contatto aperto con pull-up), dipenderà dal cablaggio
+    // Supponiamo che quando il livello è OK il galleggiante chiuda a massa (LOW).
+    return m_mcp.digitalRead(cfg.mcpPinWaterLevel) == LOW;
+  }
+  return true; // Se MCP non c'è, diciamo che è tutto ok
 }
 
 TempStatus AquariumLogic::getTempStatus() const {
@@ -332,10 +346,7 @@ void AquariumLogic::evaluateSchedule() {
 }
 void AquariumLogic::applyLightHardware() {
   bool pinState = m_config.relayInverted ? !m_lightOn : m_lightOn;
-  
-  if (mcp_connected && cfg.mcpPinLight >= 0 && cfg.mcpPinLight < 16) {
-    mcp.digitalWrite(cfg.mcpPinLight, pinState ? HIGH : LOW);
-  }
+  digitalWrite(LIGHT_RELAY_PIN, pinState ? HIGH : LOW);
 }
 
 void AquariumLogic::setLightManual(bool on) {
@@ -538,8 +549,7 @@ bool AquariumLogic::loadConfigSD() {
     else if (key.equalsIgnoreCase("relay_inv"))    m_config.relayInverted = (val == "1" || val.equalsIgnoreCase("true"));
     else if (key.equalsIgnoreCase("date_format"))  m_config.dateFormat    = val.toInt() % 3;
     else if (key.equalsIgnoreCase("screensaver_t")) m_config.screensaverTime = (uint16_t)constrain(val.toInt(), 0, 3600);
-    else if (key.equalsIgnoreCase("mcp_pin_light"))  cfg.mcpPinLight = (int8_t)val.toInt();
-    else if (key.equalsIgnoreCase("mcp_pin_level"))  cfg.mcpPinWaterLevel = (int8_t)val.toInt();
+    else if (key.equalsIgnoreCase("format_hour"))    cfg.formatHour = val.toInt();
     else if (key.equalsIgnoreCase("lang_file")) {
       String cleanVal = val;
       while (cleanVal.startsWith("\"") && cleanVal.endsWith("\"") && cleanVal.length() >= 2) {
