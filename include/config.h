@@ -170,6 +170,7 @@ struct TouchCal {
 struct AppConfig {
   uint8_t screenMode;
   String wifiSsid, wifiPassword;
+  bool wifiStaticEnabled;
   String wifiIpStatic, wifiSubnet, wifiGateway, wifiDns1, wifiDns2;
   String weatherApiKey, weatherCity;
   String ntpServer1, ntpServer2, timezone;

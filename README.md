@@ -321,9 +321,3 @@ Se questo firmware ti è stato utile per il tuo acquario o semplicemente apprezz
 [![Offrimi un caffè con PayPal](https://img.shields.io/badge/Offrimi_un_caffè-PayPal-00457C.svg?style=for-the-badge&logo=paypal)](https://paypal.me/MatteoSacanna)
 
 ---
-
-## 📝 Manutenzione del README
-
-> **REGOLE PER GLI AGENTI AI & SVILUPPATORI:**
-> Questo file `README.md` costituisce la documentazione ufficiale e completa del progetto **Aquarium OS Touch**.
-> **Ogni volta che vengono apportate modifiche, aggiunte nuove funzionalità, variati i pinout o introdotte nuove impostazioni nel codice source, questo file DEVE essere aggiornato contestualmente per riflettere le specifiche correnti del sistema.**

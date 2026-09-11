@@ -207,6 +207,7 @@ String buildConfigText() {
   out += "screen_mode=" + String(cfg.screenMode) + "\n";
   out += "wifi_ssid=\"" + cfg.wifiSsid + "\"\n";
   out += "wifi_password=\"" + cfg.wifiPassword + "\"\n";
+  out += "wifi_static_en=" + String(cfg.wifiStaticEnabled ? "1" : "0") + "\n";
   out += "wifi_ip_static=" + cfg.wifiIpStatic + "\n";
   out += "wifi_subnet=" + cfg.wifiSubnet + "\n";
   out += "wifi_gateway=" + cfg.wifiGateway + "\n";

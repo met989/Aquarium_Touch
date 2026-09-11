@@ -167,13 +167,18 @@
     </div>
     <div class="card">
       <div class="card-title">🔧 <span data-i18n="TITLE_ADV_NET">Rete Avanzata (IP Statico)</span></div>
-      <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px"><span data-i18n="MSG_DHCP_HINT">Lascia 0.0.0.0 per DHCP automatico</span></div>
-      <div class="form-group"><label><span data-i18n="LABEL_STATIC_IP">IP Statico</span>:</label><input type="text" id="cfgWifiIp"></div>
-      <div class="form-group"><label><span data-i18n="LABEL_SUBNET">Subnet Mask</span>:</label><input type="text" id="cfgWifiSubnet"></div>
-      <div class="form-group"><label><span data-i18n="LABEL_GATEWAY">Gateway</span>:</label><input type="text" id="cfgWifiGateway"></div>
-      <div class="flex-row">
-        <div class="form-group"><label><span data-i18n="LABEL_DNS1">DNS 1</span>:</label><input type="text" id="cfgWifiDns1"></div>
-        <div class="form-group"><label><span data-i18n="LABEL_DNS2">DNS 2</span>:</label><input type="text" id="cfgWifiDns2"></div>
+      <div style="display:flex; align-items:center; margin-bottom:15px;">
+        <input type="checkbox" id="cfgWifiStaticEn" onchange="toggleWifiStaticFields()" style="margin-right:10px; width:20px; height:20px;">
+        <label for="cfgWifiStaticEn" style="font-weight:bold;"><span data-i18n="LABEL_ENABLE_STATIC_IP">Abilita IP Statico (se spento usa DHCP)</span></label>
+      </div>
+      <div id="wifiStaticFieldsWrapper">
+        <div class="form-group"><label><span data-i18n="LABEL_STATIC_IP">IP Statico</span>:</label><input type="text" id="cfgWifiIp"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_SUBNET">Subnet Mask</span>:</label><input type="text" id="cfgWifiSubnet"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_GATEWAY">Gateway</span>:</label><input type="text" id="cfgWifiGateway"></div>
+        <div class="flex-row">
+          <div class="form-group"><label><span data-i18n="LABEL_DNS1">DNS 1</span>:</label><input type="text" id="cfgWifiDns1"></div>
+          <div class="form-group"><label><span data-i18n="LABEL_DNS2">DNS 2</span>:</label><input type="text" id="cfgWifiDns2"></div>
+        </div>
       </div>
       <button class="btn btn-cyan" onclick="saveNetworkSettings()">💾 <span data-i18n="BTN_SAVE_ADV_NET">Salva Rete Avanzata</span></button>
     </div>
@@ -182,10 +187,10 @@
       <div class="card-title">📡 <span data-i18n="TITLE_MQTT">Configurazione MQTT</span></div>
       <div style="display:flex; align-items:center; margin-bottom:15px;">
         <input type="checkbox" id="cfgMqttEnabled" onchange="toggleMqttFields()" style="margin-right:10px; width:20px; height:20px;">
-        <label for="cfgMqttEnabled" style="font-weight:bold;">Attiva Server MQTT</label>
+        <label for="cfgMqttEnabled" style="font-weight:bold;"><span data-i18n="LABEL_ENABLE_MQTT">Attiva Server MQTT</span></label>
       </div>
       <div id="mqttErrorBadge" style="display:none; color: var(--coral); margin-bottom: 12px; font-weight: bold; background: rgba(255,100,100,0.1); padding: 8px; border-radius: 6px;">
-        ⚠️ Errore MQTT: Connessione fallita. L'interruttore si è disattivato per sicurezza.
+        ⚠️ <span data-i18n="MSG_MQTT_ERROR">Errore MQTT: Connessione fallita. L'interruttore si è disattivato per sicurezza.</span>
       </div>
       <div id="mqttFieldsWrapper">
         <div class="form-group"><label><span data-i18n="LABEL_MQTT_SERVER">Server MQTT</span>:</label><input type="text" id="cfgMqttServer"></div>
@@ -260,6 +265,10 @@
   function toggleMqttFields() {
     const cb = document.getElementById('cfgMqttEnabled');
     document.getElementById('mqttFieldsWrapper').style.display = cb.checked ? 'block' : 'none';
+  }
+  function toggleWifiStaticFields() {
+    const cb = document.getElementById('cfgWifiStaticEn');
+    document.getElementById('wifiStaticFieldsWrapper').style.display = cb.checked ? 'block' : 'none';
   }
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -345,6 +354,11 @@
         document.getElementById('cfgNtp1').value = d.ntp_server1;
         document.getElementById('cfgNtp2').value = d.ntp_server2;
         document.getElementById('cfgWifiSsid').value = d.wifi_ssid;
+        
+        const cbStatic = document.getElementById('cfgWifiStaticEn');
+        cbStatic.checked = !!d.wifi_static_en;
+        toggleWifiStaticFields();
+
         document.getElementById('cfgWifiIp').value = d.wifi_ip_static || '0.0.0.0';
         document.getElementById('cfgWifiSubnet').value = d.wifi_subnet || '0.0.0.0';
         document.getElementById('cfgWifiGateway').value = d.wifi_gateway || '0.0.0.0';
@@ -397,7 +411,8 @@
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }
   async function saveNetworkSettings() {
-    const b='ip='+encodeURIComponent(document.getElementById('cfgWifiIp').value)+'&subnet='+encodeURIComponent(document.getElementById('cfgWifiSubnet').value)+'&gateway='+encodeURIComponent(document.getElementById('cfgWifiGateway').value)+'&dns1='+encodeURIComponent(document.getElementById('cfgWifiDns1').value)+'&dns2='+encodeURIComponent(document.getElementById('cfgWifiDns2').value);
+    const en = document.getElementById('cfgWifiStaticEn').checked ? '1' : '0';
+    const b='enabled='+en+'&ip='+encodeURIComponent(document.getElementById('cfgWifiIp').value)+'&subnet='+encodeURIComponent(document.getElementById('cfgWifiSubnet').value)+'&gateway='+encodeURIComponent(document.getElementById('cfgWifiGateway').value)+'&dns1='+encodeURIComponent(document.getElementById('cfgWifiDns1').value)+'&dns2='+encodeURIComponent(document.getElementById('cfgWifiDns2').value);
     await fetch('/api/settings/network',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }

@@ -182,5 +182,8 @@ TITLE_SCREEN=SCHERMO
 LABEL_BRIGHTNESS=Luminosita:
 BTN_AUTODIM_ON=Auto-Dimming: ATTIVO
 BTN_AUTODIM_OFF=Auto-Dimming: SPENTO
+LABEL_ENABLE_STATIC_IP=Abilita IP Statico (se spento usa DHCP)
+LABEL_ENABLE_MQTT=Attiva Server MQTT
+MSG_MQTT_ERROR=Errore MQTT: Connessione fallita. L'interruttore si e' disattivato per sicurezza.
 
 

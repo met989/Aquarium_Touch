@@ -62,6 +62,23 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   m_wifiAutoRetries = 0;
   WiFi.disconnect(true);
   delay(100);
+
+  if (ssid.length() == 0 || ssid == "SSID_WIFI") {
+    m_wifiScanStatus = "Nessun SSID impostato";
+    m_wifiConnectState = WIFI_CONN_IDLE;
+    return;
+  }
+
+  if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {
+    IPAddress localIP, gateway, subnet, dns1, dns2;
+    localIP.fromString(cfg.wifiIpStatic);
+    gateway.fromString(cfg.wifiGateway);
+    subnet.fromString(cfg.wifiSubnet);
+    if (cfg.wifiDns1.length() > 0) dns1.fromString(cfg.wifiDns1);
+    if (cfg.wifiDns2.length() > 0) dns2.fromString(cfg.wifiDns2);
+    WiFi.config(localIP, gateway, subnet, dns1, dns2);
+  }
+
   if (password.length() > 0) {
     WiFi.begin(ssid.c_str(), password.c_str());
   } else {
@@ -271,11 +288,25 @@ void AquariumLogic::update() {
           m_wifiAutoRetries++;
           Serial.printf("WiFi disconnected. Auto-retry %d/3...\n", m_wifiAutoRetries);
           WiFi.disconnect(true);
+          
+          if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {
+            IPAddress localIP, gateway, subnet, dns1, dns2;
+            localIP.fromString(cfg.wifiIpStatic);
+            gateway.fromString(cfg.wifiGateway);
+            subnet.fromString(cfg.wifiSubnet);
+            if (cfg.wifiDns1.length() > 0) dns1.fromString(cfg.wifiDns1);
+            if (cfg.wifiDns2.length() > 0) dns2.fromString(cfg.wifiDns2);
+            WiFi.config(localIP, gateway, subnet, dns1, dns2);
+          }
+          
           if (cfg.wifiPassword.length() > 0) WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
           else WiFi.begin(cfg.wifiSsid.c_str());
           m_wifiConnectState = WIFI_CONN_CONNECTING;
           m_wifiConnectStartTime = millis();
         }
+      } else {
+        // Anti-loop safety: smette di provare a connettersi dopo 3 tentativi falliti.
+        m_wifiScanStatus = "Wi-Fi in pausa (3 tentativi falliti)";
       }
     }
   }
@@ -570,6 +601,7 @@ bool AquariumLogic::loadConfigSD() {
     else if (key.equalsIgnoreCase("date_format"))  m_config.dateFormat    = val.toInt() % 3;
     else if (key.equalsIgnoreCase("screensaver_t")) m_config.screensaverTime = (uint16_t)constrain(val.toInt(), 0, 3600);
     else if (key.equalsIgnoreCase("format_hour"))    cfg.formatHour = val.toInt();
+    else if (key.equalsIgnoreCase("wifi_static_en")) cfg.wifiStaticEnabled = (val == "1" || val.equalsIgnoreCase("true"));
     else if (key.equalsIgnoreCase("lang_file")) {
       String cleanVal = val;
       while (cleanVal.startsWith("\"") && cleanVal.endsWith("\"") && cleanVal.length() >= 2) {

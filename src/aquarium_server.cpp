@@ -160,6 +160,7 @@ void AquariumServer::handleApiStatus() {
   json += "\"ntp_server1\":\"";    json += jStr(cfg.ntpServer1);  json += "\",";
   json += "\"ntp_server2\":\"";    json += jStr(cfg.ntpServer2);  json += "\",";
   json += "\"wifi_ssid\":\"";      json += jStr(cfg.wifiSsid);    json += "\",";
+  json += "\"wifi_static_en\":";   json += String(cfg.wifiStaticEnabled ? "true" : "false"); json += ",";
   json += "\"wifi_ip_static\":\""; json += jStr(cfg.wifiIpStatic); json += "\",";
   json += "\"wifi_subnet\":\"";    json += jStr(cfg.wifiSubnet);   json += "\",";
   json += "\"wifi_gateway\":\"";   json += jStr(cfg.wifiGateway);  json += "\",";
@@ -257,13 +258,20 @@ void AquariumServer::handleApiSetWifiSettings() {
 
 void AquariumServer::handleApiSetNetworkSettings() {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
-  if (m_server.hasArg("ip"))      cfg.wifiIpStatic = m_server.arg("ip");
-  if (m_server.hasArg("subnet"))  cfg.wifiSubnet   = m_server.arg("subnet");
-  if (m_server.hasArg("gateway")) cfg.wifiGateway  = m_server.arg("gateway");
-  if (m_server.hasArg("dns1"))    cfg.wifiDns1     = m_server.arg("dns1");
-  if (m_server.hasArg("dns2"))    cfg.wifiDns2     = m_server.arg("dns2");
+  if (m_server.hasArg("enabled")) {
+    cfg.wifiStaticEnabled = (m_server.arg("enabled") == "1" || m_server.arg("enabled").equalsIgnoreCase("true"));
+  }
+  if (m_server.hasArg("ip")) cfg.wifiIpStatic = m_server.arg("ip");
+  if (m_server.hasArg("subnet")) cfg.wifiSubnet = m_server.arg("subnet");
+  if (m_server.hasArg("gateway")) cfg.wifiGateway = m_server.arg("gateway");
+  if (m_server.hasArg("dns1")) cfg.wifiDns1 = m_server.arg("dns1");
+  if (m_server.hasArg("dns2")) cfg.wifiDns2 = m_server.arg("dns2");
   xSemaphoreGive(g_configMutex);
   g_saveConfigNeeded = true;
+  
+  // Applica le nuove impostazioni di rete se connesso
+  aquarium.connectWifiSSID(cfg.wifiSsid, cfg.wifiPassword);
+  
   m_server.send(200, "application/json", "{\"status\":\"ok\"}");
 }
 
