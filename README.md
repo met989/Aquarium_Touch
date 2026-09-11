@@ -69,9 +69,10 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Override manuale rapido da touch screen o da interfaccia web.
 - **Connettività Wi-Fi & Servizi di Rete:**
   - Scansione asincrona delle reti Wi-Fi direttamente dall'interfaccia touch con selezione ed inserimento password a schermo.
-  - Sincronizzazione dell'ora solare via server NTP (`pool.ntp.org`, `time.nist.gov`) con fuso orario regolabile.
+  - Sincronizzazione dell'ora solare via server NTP (`pool.ntp.org`, `time.nist.gov`) con fuso orario regolabile (tramite comodo menu a tendina nella Web UI).
   - Supporto per IP Statico o DHCP.
-  - Integrazione MQTT configurabile (Server, Porta, Utente, Password).
+  - Sistema di **Safety & Anti-Freeze**: Se la connessione Wi-Fi fallisce per 3 volte, il sistema interrompe i tentativi automatici per non bloccare l'interfaccia, in attesa di un riavvio della scansione manuale.
+  - Integrazione MQTT avanzata: attivabile/disattivabile dinamicamente tramite apposita spunta dall'interfaccia Web. Se il broker risulta irraggiungibile per 3 tentativi consecutivi, il servizio si auto-disattiva silenziosamente per proteggere le performance e la reattività del display.
 - **Server Web Integrato & API REST:**
   - Dashboard Web responsive per controllare luci, orari, temperature min/max e configurazioni.
   - API HTTP in formato JSON per l'integrazione con Home Assistant, Node-RED o script esterni.
@@ -273,15 +274,18 @@ Per semplificare la gestione e la distribuzione del firmware, il progetto includ
 - **`publish_release.bat` (Pubblicazione Automatica su GitHub):**
   Un tool che automatizza il rilascio delle nuove versioni sfruttando GitHub Actions.
   *Come usarlo:*
-  1. Aggiorna il numero di versione in `include/config.h` (es. `0.6.1`).
+  1. Aggiorna il numero di versione nel file **`version.json`** presente nella root del progetto (es. `0.6.1`).
   2. Salva il progetto e invia le modifiche a GitHub usando `push.bat`.
   3. Avvia `publish_release.bat`. Lo script creerà un tag invisibile e dirà a GitHub di avviare i suoi server, i quali compileranno il codice, pubblicheranno la Release ufficiale e scriveranno da soli il Changelog basandosi sulle tue ultime modifiche!
 
-- **`flash.bat` (Flasher Nativo Offline):**
-  Un'utility utilissima per flashare i file `.bin` (presenti nella cartella `release/`) direttamente sulla scheda, **senza bisogno di avere né PlatformIO né Python installati**. Ideale per distribuire l'aggiornamento a chiunque.
+- **`flash.bat` (Flasher Intelligente Offline):**
+  Un'utility basata su Python (`scripts/flash.py`) comodissima per flashare i file `.bin` (presenti nella cartella `release/`) direttamente sulla scheda.
   *Come usarlo:*
   1. Collega la scheda via USB e avvia `flash.bat`.
-  2. Segui le comodissime istruzioni a schermo (PowerShell): lo script ti farà selezionare il file `.bin` dal più recente al più vecchio, rileverà automaticamente su quale porta COM è attaccata la scheda e in pochi secondi effettuerà il flash (utilizzando l'eseguibile ufficiale di Espressif incluso nella cartella `tools`).
+  2. Segui le istruzioni a schermo: lo script ti farà selezionare il file `.bin` dal più recente al più vecchio, rileverà automaticamente in modo nativo su quale porta COM è attaccata la scheda (leggendo direttamente il sistema Windows senza bisogno di dipendenze esterne come pyserial) e in pochi secondi effettuerà il flash.
+
+> [!TIP]
+> **Log delle Operazioni (`operations.log`):** Tutti i file eseguibili `.bat` della root (`build.bat`, `flash.bat`, `publish_release.bat`, `push.bat`, `pull.bat`) salvano automaticamente uno storico delle loro esecuzioni nel file `operations.log`, permettendoti di sapere sempre in un batter d'occhio quando hai effettuato l'ultimo caricamento o l'ultimo salvataggio su GitHub!
 
 ---
 
