@@ -327,7 +327,7 @@
       document.getElementById('statRelay').innerText = d.relay_inv ? (i18nDict['LABEL_ACTIVE_LOW'] || 'Active Low') : (i18nDict['LABEL_ACTIVE_HIGH'] || 'Active High');
       document.getElementById('liveTime').innerText = d.time || '00:00:00';
       document.getElementById('liveDate').innerText = d.date || '--';
-      document.getElementById('statTz').innerText = 'UTC' + (d.timezone >= 0 ? '+' : '') + d.timezone;
+      document.getElementById('statTz').innerText = 'UTC' + (d.timezone >= 0 ? '' : '') + d.timezone;
       document.getElementById('statFmtHour').innerText = d.format_hour + 'h';
       document.getElementById('statFmtDate').innerText = DATE_FMTS[d.date_format] || '--';
       document.getElementById('statNtp1').innerText = d.ntp_server1 || '--';
