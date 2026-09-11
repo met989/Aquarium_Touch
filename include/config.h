@@ -118,7 +118,7 @@
 // ------------------------------------------------------------------------------
 // 7. System Constants & File Paths
 // ------------------------------------------------------------------------------
-#define AQUARIUM_OS_VERSION "0.5.2-21082026-beta"
+// System version is now injected via platformio.ini extra_scripts (from version.json)
 
 static const uint32_t SERIAL_BAUD = 115200;
 static const char *CONFIG_PATH = "/config.cfg";
