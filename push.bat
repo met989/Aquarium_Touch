@@ -1,4 +1,5 @@
 @echo off
+echo %DATE% %TIME% - Eseguito %~nx0 >> "%~dp0operations.log"
 echo ========================================
 echo Salvataggio del progetto in corso...
 echo ========================================

@@ -1,4 +1,5 @@
 @echo off
+echo %DATE% %TIME% - Eseguito %~nx0 >> "%~dp0operations.log"
 title Aquarium OS Touch - Builder
 echo ========================================
 echo Compilazione del progetto e creazione del file .bin...
