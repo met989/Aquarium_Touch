@@ -14,9 +14,10 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 7. [Localizzazione & Lingue](#-localizzazione--lingue)
 8. [Architettura Software & File di Progetto](#-architettura-software--file-di-progetto)
 9. [Configurazione & Persistenza](#-configurazione--persistenza)
-10. [Compilazione & Flash](#-compilazione--flash)
-11. [Sviluppi Futuri (Roadmap)](#-sviluppi-futuri-roadmap)
-12. [Manutenzione del README](#-manutenzione-del-readme)
+10. [Aggiornamento del Firmware](#-aggiornamento-del-firmware-update)
+11. [Compilazione & Sviluppo](#-compilazione--sviluppo)
+12. [Sviluppi Futuri (Roadmap)](#-sviluppi-futuri-roadmap)
+13. [Manutenzione del README](#-manutenzione-del-readme)
 
 ---
 
@@ -242,7 +243,24 @@ Le configurazioni del sistema seguono una rigorosa gerarchia:
 
 ---
 
-## 🛠 Compilazione & Flash
+## 🔄 Aggiornamento del Firmware (Update)
+
+Mantenere il tuo Aquarium OS Touch aggiornato è semplicissimo e non richiede competenze di programmazione.
+
+1. **Scarica l'Aggiornamento:** Vai nella sezione [Releases](https://github.com/met989/Aquarium_Touch/releases) di questo repository GitHub e scarica l'ultimo file `.bin` disponibile (es. `esp32_2432S028_v3_0.6.bin`).
+2. **Posiziona il File:** Inserisci il file appena scaricato all'interno della cartella `release/` del tuo progetto locale.
+3. **Collega lo Schermo:** Collega il display ESP32 al computer tramite cavo USB.
+4. **Avvia l'Aggiornamento:** Fai doppio clic sul file **`flash.bat`** (Flasher Intelligente Offline). Lo script:
+   - Rileverà automaticamente in modo nativo la porta USB (COM) a cui è collegato lo schermo (senza bisogno di driver aggiuntivi).
+   - Ti farà selezionare il file firmware da installare.
+   - Caricherà il nuovo sistema operativo in pochi secondi.
+
+> [!TIP]
+> **Log delle Operazioni (`operations.log`):** Tutti i file eseguibili `.bat` salvano automaticamente uno storico delle loro esecuzioni nel file `operations.log`, permettendoti di sapere sempre in un batter d'occhio quando hai effettuato l'ultimo aggiornamento!
+
+---
+
+## 🛠 Compilazione & Sviluppo (Per Sviluppatori)
 
 ### Requisiti
 - **VS Code** con estensione **PlatformIO IDE** (o CLI PlatformIO).
@@ -281,15 +299,6 @@ Per semplificare la gestione e la distribuzione del firmware, il progetto includ
   1. Aggiorna il numero di versione nel file **`version.json`** presente nella root del progetto (es. `0.6.1`).
   2. Salva il progetto e invia le modifiche a GitHub usando `push.bat`.
   3. Avvia `publish_release.bat`. Lo script creerà un tag invisibile e dirà a GitHub di avviare i suoi server, i quali compileranno il codice, pubblicheranno la Release ufficiale e scriveranno da soli il Changelog basandosi sulle tue ultime modifiche!
-
-- **`flash.bat` (Flasher Intelligente Offline):**
-  Un'utility basata su Python (`scripts/flash.py`) comodissima per flashare i file `.bin` (presenti nella cartella `release/`) direttamente sulla scheda.
-  *Come usarlo:*
-  1. Collega la scheda via USB e avvia `flash.bat`.
-  2. Segui le istruzioni a schermo: lo script ti farà selezionare il file `.bin` dal più recente al più vecchio, rileverà automaticamente in modo nativo su quale porta COM è attaccata la scheda (leggendo direttamente il sistema Windows senza bisogno di dipendenze esterne come pyserial) e in pochi secondi effettuerà il flash.
-
-> [!TIP]
-> **Log delle Operazioni (`operations.log`):** Tutti i file eseguibili `.bat` della root (`build.bat`, `flash.bat`, `publish_release.bat`, `push.bat`, `pull.bat`) salvano automaticamente uno storico delle loro esecuzioni nel file `operations.log`, permettendoti di sapere sempre in un batter d'occhio quando hai effettuato l'ultimo caricamento o l'ultimo salvataggio su GitHub!
 
 ---
 
