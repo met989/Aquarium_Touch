@@ -512,14 +512,15 @@ void AquariumUI::drawSettingsMenu() {
       if (m_settingsMenuPage == 1) {
           const char* items_page2[] = {
             langManager.getText("MENU_HARDWARE", "9. Hardware & I2C"),
-            langManager.getText("MENU_SCREEN", "10. Screen")
+            langManager.getText("MENU_SCREEN", "10. Screen"),
+            langManager.getText("MENU_LIGHT_TIMER", "11. Light Timer")
           };
           int btnWidth = 145;
           int btnHeight = 40;
           int startY = 24;
           int gapY = 42;
           
-          for (int i = 0; i < 2; i++) {
+          for (int i = 0; i < 3; i++) {
               int col = i % 2;
               int row = i / 2;
               int x = 10 + col * 155;
@@ -625,6 +626,7 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         if (sub == 8) drawSubScreenFactoryReset();
         if (sub == 9) drawSubScreenHardware();
         if (sub == 10) drawSubScreenScreen();
+        if (sub == 11) drawSubScreenLightTimer();
     }
 }
 
@@ -700,6 +702,51 @@ void AquariumUI::drawSubScreenRelay() {
 
   // Button 2: Inverti Logica High/Low (X: 10, Y: 178, W: 300, H: 44)
   drawTouchButton(10, 178, 300, 44, inv ? langManager.getText("BTN_RESTORE_HIGH", "RESTORE ACTIVE HIGH LOGIC") : langManager.getText("BTN_INVERT_LOW", "INVERT LOGIC (ACTIVE LOW)"), COLOR_CARD_BORDER, COLOR_CYAN_GLOW);
+}
+
+void AquariumUI::drawSubScreenLightTimer() {
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  GFX->setTextDatum(TC_DATUM);
+  GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_BG_OCEAN);
+  GFX->drawString(langManager.getText("TITLE_LIGHT_TIMER", "LIGHT TIMER SETTINGS"), 190, 10, 2);
+
+  const AquariumConfig& cfg = aquarium.getConfig();
+
+  // Card 1: ON TIME (X: 10, Y: 40, W: 300, H: 80)
+  drawGlassCard(10, 40, 300, 80, COLOR_GOLD_ACCENT);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+  GFX->drawString(langManager.getText("LABEL_ON_TIME", "ON TIME:"), 18, 50, 2);
+
+  char onStr[16];
+  snprintf(onStr, sizeof(onStr), "%02d:%02d", cfg.lightOnHour, cfg.lightOnMin);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
+  GFX->drawString(onStr, 18, 71, 4);
+
+  // Enlarged Buttons (Height: 52, Y: 54)
+  drawTouchButton(130, 54, 40, 52, "-H", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 54, 40, 52, "+H", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 54, 40, 52, "-M", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 54, 40, 52, "+M", COLOR_CARD_BORDER, TFT_WHITE);
+
+  // Card 2: OFF TIME (X: 10, Y: 132, W: 300, H: 80)
+  drawGlassCard(10, 132, 300, 80, COLOR_TEXT_MUTED);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+  GFX->drawString(langManager.getText("LABEL_OFF_TIME", "OFF TIME:"), 18, 142, 2);
+
+  char offStr[16];
+  snprintf(offStr, sizeof(offStr), "%02d:%02d", cfg.lightOffHour, cfg.lightOffMin);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(TFT_WHITE, COLOR_CARD_BG);
+  GFX->drawString(offStr, 18, 163, 4);
+
+  // Enlarged Buttons (Height: 52, Y: 146)
+  drawTouchButton(130, 146, 40, 52, "-H", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 146, 40, 52, "+H", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 146, 40, 52, "-M", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 146, 40, 52, "+M", COLOR_CARD_BORDER, TFT_WHITE);
 }
 
 void AquariumUI::drawWifiKeyboard() {
@@ -1271,13 +1318,13 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           int startY = 24;
           int gapY = 42;
           
-          for (int i = 0; i < 2; i++) {
+          for (int i = 0; i < 3; i++) {
               int col = i % 2;
               int row = i / 2;
               int x = 10 + col * 155;
               int y = startY + row * gapY;
               if (touchX >= x && touchX <= x + btnWidth && sy >= y && sy <= y + btnHeight) {
-                  m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10
+                  m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10, i=2 -> 11
                   m_settingsNeedsRedraw = true;
                   m_lastTouchTime = millis() + 500; // Anti-ghost touch
                   return;
@@ -1341,6 +1388,30 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         // Button 2: Inverti Logica High/Low (X: 10..310, sy: 178..222)
         if (touchX >= 10 && touchX <= 310 && sy >= 178 && sy <= 222) {
           aquarium.toggleRelayInverted();
+          m_settingsNeedsRedraw = true;
+        }
+      } else if (m_settingsSubScreen == 11) {
+        // Sub 11: Light Timer Settings (ON and OFF times)
+        // ON TIME Buttons (sy: 54..106)
+        if (sy >= 54 && sy <= 106) {
+          uint8_t h = cfg.lightOnHour;
+          uint8_t m = cfg.lightOnMin;
+          if (touchX >= 130 && touchX <= 170) h = (h + 23) % 24; // -H
+          if (touchX >= 174 && touchX <= 214) h = (h + 1) % 24;  // +H
+          if (touchX >= 218 && touchX <= 258) m = (m + 55) % 60; // -M
+          if (touchX >= 262 && touchX <= 302) m = (m + 5) % 60;  // +M
+          aquarium.setScheduleOn(h, m);
+          m_settingsNeedsRedraw = true;
+        }
+        // OFF TIME Buttons (sy: 146..198)
+        else if (sy >= 146 && sy <= 198) {
+          uint8_t h = cfg.lightOffHour;
+          uint8_t m = cfg.lightOffMin;
+          if (touchX >= 130 && touchX <= 170) h = (h + 23) % 24; // -H
+          if (touchX >= 174 && touchX <= 214) h = (h + 1) % 24;  // +H
+          if (touchX >= 218 && touchX <= 258) m = (m + 55) % 60; // -M
+          if (touchX >= 262 && touchX <= 302) m = (m + 5) % 60;  // +M
+          aquarium.setScheduleOff(h, m);
           m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 4) {
@@ -1506,6 +1577,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           if (idx >= 0 && idx < langManager.getAvailableLanguageCount()) {
             LangItem item = langManager.getAvailableLanguage(idx);
             aquarium.setLanguageFile(item.filename);
+            extern bool writeWholeConfigFileSafe();
+            writeWholeConfigFileSafe();
             delay(300);
             ESP.restart();
           }

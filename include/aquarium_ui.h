@@ -75,6 +75,7 @@ private:
   void drawSubScreenFactoryReset();
   void drawSubScreenHardware();
   void drawSubScreenScreen();
+  void drawSubScreenLightTimer();
   void drawWifiKeyboard();
   void handleKeyboardTouch(int touchX, int touchY);
 

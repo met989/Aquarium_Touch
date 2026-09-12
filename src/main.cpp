@@ -246,6 +246,8 @@ String buildConfigText() {
   out += "light_off_h=" + String(aq.lightOffHour) + "\n";
   out += "light_off_m=" + String(aq.lightOffMin) + "\n";
   out += "auto_sched=" + String(aq.autoSchedule ? "1" : "0") + "\n";
+  out += "target_min_t=" + String(aq.targetTempMin, 1) + "\n";
+  out += "target_max_t=" + String(aq.targetTempMax, 1) + "\n";
   out += "temp_offset=" + String(aq.tempOffset, 1) + "\n";
   out += "relay_inv=" + String(aq.relayInverted ? "1" : "0") + "\n";
   out += "date_format=" + String(aq.dateFormat) + "\n";

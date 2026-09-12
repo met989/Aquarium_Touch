@@ -73,7 +73,7 @@
       <div class="badge badge-cyan">IP: <span id="ipAddr">...</span></div>
       <div class="badge badge-gold" id="wifiStatusBadge">Wi-Fi: --</div>
       <button class="badge badge-gold" onclick="window.location.href='/update'" style="cursor:pointer; background:rgba(255,215,0,0.15); border:1px solid var(--gold); color:var(--gold);">🔄 <span data-i18n="BTN_OTA_UPDATE">OTA Update</span></button>
-      <button class="badge" onclick="if(confirm('Riavviare il sistema?')) { fetch('/api/reboot', {method: 'POST'}).then(() => { setTimeout(() => window.location.reload(), 3000); }); }" style="cursor:pointer; background:rgba(255,82,82,0.15); border:1px solid var(--coral); color:var(--coral);">🛑 <span data-i18n="BTN_REBOOT">Riavvia</span></button>
+      <button class="badge" onclick="if(confirm(i18nDict['MSG_CONFIRM_REBOOT'] || 'Riavviare il sistema?')) { fetch('/api/reboot', {method: 'POST'}).then(() => { setTimeout(() => window.location.reload(), 3000); }); }" style="cursor:pointer; background:rgba(255,82,82,0.15); border:1px solid var(--coral); color:var(--coral);">🛑 <span data-i18n="BTN_REBOOT">Riavvia</span></button>
     </div>
   </header>
 
@@ -128,9 +128,10 @@
         </select>
       </div>
       <div class="flex-row">
-        <div class="form-group"><label><span data-i18n="LABEL_ON_TIME_LONG">Ora Accensione (ON)</span>:</label><input type="time" id="timeOn"></div>
-        <div class="form-group"><label><span data-i18n="LABEL_OFF_TIME_LONG">Ora Spegnimento (OFF)</span>:</label><input type="time" id="timeOff"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_ON_TIME_LONG">Ora Accensione (ON)</span>:</label><input type="time" id="timeOn" onchange="updateLightDuration()"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_OFF_TIME_LONG">Ora Spegnimento (OFF)</span>:</label><input type="time" id="timeOff" onchange="updateLightDuration()"></div>
       </div>
+      <div id="lightDuration" style="text-align: center; font-weight: bold; color: var(--gold); margin-bottom: 12px; font-size: 0.95rem;">Durata Luce: --:--</div>
       <button class="btn btn-cyan" onclick="saveRelaySettings()">💾 <span data-i18n="BTN_SAVE_RELAY">Salva Orario & Relè</span></button>
     </div>
     <!-- DATA & NTP -->
@@ -283,12 +284,13 @@
   let i18nDict = {};
 
   async function loadTranslations(langFile) {
-    let dictStr = sessionStorage.getItem('lang_' + langFile);
+    const cacheKey = 'lang_' + langFile + '_v1.1'; // Busta la cache
+    let dictStr = sessionStorage.getItem(cacheKey);
     if (!dictStr) {
       try {
         const res = await fetch('/api/lang');
         dictStr = await res.text();
-        sessionStorage.setItem('lang_' + langFile, dictStr);
+        sessionStorage.setItem(cacheKey, dictStr);
       } catch(e) { console.error(e); return; }
     }
     try {
@@ -348,6 +350,7 @@
         document.getElementById('cfgRelayInv').value = d.relay_inv ? '1' : '0';
         document.getElementById('timeOn').value = pad(d.light_on_h) + ':' + pad(d.light_on_m);
         document.getElementById('timeOff').value = pad(d.light_off_h) + ':' + pad(d.light_off_m);
+        updateLightDuration();
         document.getElementById('cfgTimezone').value = d.timezone;
         document.getElementById('cfgFormatHour').value = d.format_hour;
         document.getElementById('cfgDateFormat').value = d.date_format;
@@ -385,6 +388,22 @@
 
   async function toggleLight() { await fetch('/api/light/toggle',{method:'POST'}); updateStatus(); }
   async function toggleAuto()  { await fetch('/api/auto/toggle', {method:'POST'}); updateStatus(); }
+
+  function updateLightDuration() {
+    const onVal = document.getElementById('timeOn').value;
+    const offVal = document.getElementById('timeOff').value;
+    if (!onVal || !offVal) return;
+    const onParts = onVal.split(':');
+    const offParts = offVal.split(':');
+    let onMins = parseInt(onParts[0]) * 60 + parseInt(onParts[1]);
+    let offMins = parseInt(offParts[0]) * 60 + parseInt(offParts[1]);
+    let diff = offMins - onMins;
+    if (diff < 0) diff += 24 * 60;
+    const durH = Math.floor(diff / 60);
+    const durM = diff % 60;
+    const label = i18nDict['LABEL_LIGHT_DURATION'] || 'Durata Luce:';
+    document.getElementById('lightDuration').innerText = `${label} ${durH}h ${pad(durM)}m`;
+  }
 
   async function saveTempSettings() {
     const b = 'min_t='+document.getElementById('cfgTempMin').value+'&max_t='+document.getElementById('cfgTempMax').value+'&offset='+document.getElementById('cfgTempOffset').value;

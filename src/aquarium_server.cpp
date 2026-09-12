@@ -327,6 +327,8 @@ void AquariumServer::handleApiScanI2C() {
 void AquariumServer::handleApiSetLanguage() {
   if (m_server.hasArg("lang_file")) {
     aquarium.setLanguageFile(m_server.arg("lang_file"));
+    extern bool writeWholeConfigFileSafe();
+    writeWholeConfigFileSafe();
     m_server.send(200, "application/json", "{\"status\":\"rebooting\"}");
     delay(300);
     ESP.restart();

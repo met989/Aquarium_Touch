@@ -187,3 +187,6 @@ LABEL_ENABLE_MQTT=Attiva Server MQTT
 MSG_MQTT_ERROR=Errore MQTT: Connessione fallita. L'interruttore si e' disattivato per sicurezza.
 
 
+BTN_REBOOT=Riavvia
+MSG_CONFIRM_REBOOT=Riavviare il sistema?
+BTN_OTA_UPDATE=Aggiornamento OTA
