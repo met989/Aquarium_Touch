@@ -67,7 +67,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 - **Gestione Illuminazione & Automatizzazione:**
   - Controllo output relè per la lampada o apparecchiatura dell'acquario (PIN 27).
   - Logica relè configurabile: *Attivo HIGH* o *Attivo LOW* (Relè invertito).
-  - Modalità automatica a orario (es. Accensione ore 08:00, Spegnimento ore 20:00).
+  - Modalità automatica a orario (es. Accensione ore 10:00, Spegnimento ore 18:00).
   - Override manuale rapido da touch screen o da interfaccia web.
 - **Connettività Wi-Fi & Servizi di Rete:**
   - Scansione asincrona delle reti Wi-Fi direttamente dall'interfaccia touch con selezione ed inserimento password a schermo.

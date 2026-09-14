@@ -22,9 +22,9 @@ enum TempStatus {
 };
 
 struct AquariumConfig {
-  uint8_t lightOnHour   = 8;
+  uint8_t lightOnHour   = 10;
   uint8_t lightOnMin    = 0;
-  uint8_t lightOffHour  = 20;
+  uint8_t lightOffHour  = 18;
   uint8_t lightOffMin   = 0;
   bool autoSchedule     = true;
   float targetTempMin   = DEFAULT_TEMP_MIN;

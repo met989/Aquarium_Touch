@@ -277,7 +277,7 @@ bool writeWholeConfigFileSafe() {
   if (g_loadingConfig)
     return true;
   String content = buildConfigText();
-  DBG_PRINTF("[FILE] Scrittura %u byte\n", (unsigned)content.length());
+  DBG_PRINTF("[FILE] Writing %u byte\n", (unsigned)content.length());
 
   if (SD.exists(CONFIG_TMP_PATH))
     SD.remove(CONFIG_TMP_PATH);
@@ -285,7 +285,7 @@ bool writeWholeConfigFileSafe() {
 
   File tmp = SD.open(CONFIG_TMP_PATH, FILE_WRITE);
   if (!tmp) {
-    DBG_PRINTLN("[FILE] ERRORE: impossibile aprire /config.tmp");
+    DBG_PRINTLN("[FILE] Error: impossible open /config.tmp");
     return false;
   }
 
@@ -311,7 +311,7 @@ bool writeWholeConfigFileSafe() {
   }
   if (SD.exists(CONFIG_BAK_PATH))
     SD.remove(CONFIG_BAK_PATH);
-  DBG_PRINTLN("[FILE] Salvato /config.cfg OK");
+  DBG_PRINTLN("[FILE] Saved /config.cfg OK");
   return true;
 }
 
