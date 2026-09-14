@@ -60,6 +60,7 @@ void AquariumServer::setupRoutes() {
   m_server.on("/api/auto/toggle",          HTTP_POST, [this]() { handleApiToggleAuto(); });
   m_server.on("/api/schedule",             HTTP_POST, [this]() { handleApiSetSchedule(); });
   m_server.on("/api/settings/temp",        HTTP_POST, [this]() { handleApiSetTempSettings(); });
+  m_server.on("/api/settings/ph",          HTTP_POST, [this]() { handleApiSetPhSettings(); });
   m_server.on("/api/settings/time",        HTTP_POST, [this]() { handleApiSetTimeSettings(); });
   m_server.on("/api/ntp/sync",             HTTP_POST, [this]() { handleApiNtpSync(); });
   m_server.on("/api/settings/relay",       HTTP_POST, [this]() { handleApiSetRelaySettings(); });
@@ -73,6 +74,8 @@ void AquariumServer::setupRoutes() {
   m_server.on("/api/scan_i2c",             HTTP_GET,  [this]() { handleApiScanI2C(); });
   m_server.on("/api/config/raw",           HTTP_GET,  [this]() { handleApiConfigRawGet(); });
   m_server.on("/api/config/raw",           HTTP_POST, [this]() { handleApiConfigRawPost(); });
+  m_server.on("/api/email/settings",       HTTP_POST, [this]() { handleApiSetEmailSettings(); });
+  m_server.on("/api/email/test",           HTTP_POST, [this]() { handleApiTestEmail(); });
   m_server.on("/api/reboot",               HTTP_POST, [this]() { 
     m_server.send(200, "application/json", "{\"status\":\"rebooting\"}"); 
     delay(500); 
@@ -86,13 +89,11 @@ extern AppConfig cfg;
 void AquariumServer::handleRoot() {
   DBG_PRINTF("[WEB] GET / (handleRoot) Free Heap: %u\n", ESP.getFreeHeap());
   uint32_t t = millis();
-  
   m_server.sendHeader("Content-Encoding", "gzip");
   m_server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   m_server.sendHeader("Pragma", "no-cache");
   m_server.sendHeader("Expires", "-1");
   m_server.send_P(200, PSTR("text/html; charset=utf-8"), (const char*)INDEX_HTML_GZ, INDEX_HTML_GZ_LEN);
-  
   DBG_PRINTF("[WEB] Sent INDEX_HTML_GZ in %lu ms\n", millis() - t);
 }
 
@@ -137,6 +138,13 @@ void AquariumServer::handleApiStatus() {
     ? langManager.getText("MSG_LIGHT_ON",  "LIGHT ON")
     : langManager.getText("MSG_LIGHT_OFF", "LIGHT OFF");
 
+  int phStatusInt = aquarium.getPhStatus();
+  String phStatusStr = (phStatusInt == 0)
+    ? langManager.getText("MSG_PH_OPTIMAL", "OPTIMAL")
+    : (phStatusInt == 1
+       ? langManager.getText("MSG_PH_LOW", "TOO LOW")
+       : langManager.getText("MSG_PH_HIGH", "TOO HIGH"));
+
   String json;
   json.reserve(2048);
   json += "{";
@@ -145,6 +153,11 @@ void AquariumServer::handleApiStatus() {
   json += "\"temp_max\":";         json += jFloat(aq.targetTempMax); json += ",";
   json += "\"temp_offset\":";      json += jFloat(aq.tempOffset); json += ",";
   json += "\"temp_status\":\"";    json += jStr(tempStatusStr);  json += "\",";
+  json += "\"ph\":";               json += jFloat(aquarium.getPhValue()); json += ",";
+  json += "\"ph_min\":";           json += jFloat(aq.targetPhMin); json += ",";
+  json += "\"ph_max\":";           json += jFloat(aq.targetPhMax); json += ",";
+  json += "\"ph_offset\":";        json += jFloat(aq.phOffset); json += ",";
+  json += "\"ph_status\":\"";      json += jStr(phStatusStr);  json += "\",";
   json += "\"light_on\":";         json += String(aquarium.isLightOn() ? "true" : "false"); json += ",";
   json += "\"light_status\":\"";   json += jStr(lightStatusStr); json += "\",";
   json += "\"auto_sched\":";       json += String(aquarium.isAutoSchedule() ? "true" : "false"); json += ",";
@@ -210,6 +223,16 @@ void AquariumServer::handleApiSetTempSettings() {
   if (m_server.hasArg("min_t") && m_server.hasArg("max_t") && m_server.hasArg("offset")) {
     aquarium.setTargetTemp(m_server.arg("min_t").toFloat(), m_server.arg("max_t").toFloat());
     aquarium.setTempOffset(m_server.arg("offset").toFloat());
+    m_server.send(200, "application/json", "{\"status\":\"ok\"}");
+  } else {
+    m_server.send(400, "application/json", "{\"error\":\"missing args\"}");
+  }
+}
+
+void AquariumServer::handleApiSetPhSettings() {
+  if (m_server.hasArg("min_ph") && m_server.hasArg("max_ph") && m_server.hasArg("offset")) {
+    aquarium.setTargetPh(m_server.arg("min_ph").toFloat(), m_server.arg("max_ph").toFloat());
+    aquarium.setPhOffset(m_server.arg("offset").toFloat());
     m_server.send(200, "application/json", "{\"status\":\"ok\"}");
   } else {
     m_server.send(400, "application/json", "{\"error\":\"missing args\"}");
@@ -361,5 +384,33 @@ void AquariumServer::handleApiConfigRawPost() {
     m_server.send(200, "text/plain", "OK");
   } else {
     m_server.send(500, "text/plain", "Error writing config.cfg");
+  }
+}
+
+void AquariumServer::handleApiSetEmailSettings() {
+  if (m_server.hasArg("email_enabled")) cfg.emailEnabled = (m_server.arg("email_enabled") == "1");
+  if (m_server.hasArg("smtp_host")) cfg.smtpHost = m_server.arg("smtp_host");
+  if (m_server.hasArg("smtp_port")) cfg.smtpPort = m_server.arg("smtp_port").toInt();
+  if (m_server.hasArg("smtp_user")) cfg.smtpUser = m_server.arg("smtp_user");
+  if (m_server.hasArg("smtp_password") && m_server.arg("smtp_password") != "********") {
+    cfg.smtpPassword = m_server.arg("smtp_password");
+  }
+  if (m_server.hasArg("smtp_ssl")) cfg.smtpSsl = (m_server.arg("smtp_ssl") == "1");
+  if (m_server.hasArg("email_sender")) cfg.emailSender = m_server.arg("email_sender");
+  if (m_server.hasArg("email_recipients")) cfg.emailRecipients = m_server.arg("email_recipients");
+
+  g_saveConfigNeeded = true;
+  m_server.send(200, "application/json", "{\"status\":\"ok\"}");
+}
+
+void AquariumServer::handleApiTestEmail() {
+  String subject = "Test Email - Aquarium OS Touch";
+  String body = "Questo e' un messaggio di test dal tuo acquario.\nSe stai leggendo questo messaggio, le impostazioni SMTP sono corrette!";
+  
+  bool success = aquarium.sendEmail(subject, body);
+  if (success) {
+    m_server.send(200, "application/json", "{\"status\":\"ok\", \"message\":\"Email inviata con successo!\"}");
+  } else {
+    m_server.send(500, "application/json", "{\"status\":\"error\", \"message\":\"Errore durante l'invio dell'email.\"}");
   }
 }

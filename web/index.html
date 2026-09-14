@@ -88,6 +88,14 @@
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_TEMP_OFFSET_S">Offset Sensore</span></span><span class="stat-value" id="statTempOff">-- °C</span></div>
     </div>
     <div class="card">
+      <div class="card-title">🧪 <span data-i18n="TITLE_WATER_PH">pH Acqua</span></div>
+      <div id="phVal" class="temp-display">--.-</div>
+      <div style="text-align:center;color:var(--emerald);font-weight:600;margin-bottom:12px" id="phStatusText">--</div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_PH_MIN_OPT">Min Ottimale</span></span><span class="stat-value" id="statPhMin">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_PH_MAX_OPT">Max Ottimale</span></span><span class="stat-value" id="statPhMax">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_PH_OFFSET_S">Offset Sensore</span></span><span class="stat-value" id="statPhOff">--</span></div>
+    </div>
+    <div class="card">
       <div class="card-title">💡 <span data-i18n="TITLE_LIGHT_TIMER">Luce & Timer</span></div>
       <div style="font-size:1.3rem;font-weight:600;text-align:center;margin:8px 0" id="lightStatus"><span data-i18n="LABEL_STATUS">STATO:</span> --</div>
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_MODE">Modalità</span></span><span class="stat-value" id="statMode">--</span></div>
@@ -117,6 +125,14 @@
       <div class="form-group"><label><span data-i18n="LABEL_MAX_OPT">Massima Ottimale</span> (°C):</label><input type="number" step="0.1" id="cfgTempMax"></div>
       <div class="form-group"><label><span data-i18n="LABEL_TEMP_OFFSET">Offset Calibrazione Sensore (°C)</span>:</label><input type="number" step="0.1" id="cfgTempOffset"></div>
       <button class="btn btn-cyan" onclick="saveTempSettings()">💾 <span data-i18n="BTN_SAVE_TEMP">Salva Soglie Temperatura</span></button>
+    </div>
+    <!-- PH -->
+    <div class="card">
+      <div class="card-title">🧪 <span data-i18n="TITLE_PH_THRESHOLDS">Soglie e Calibrazione pH</span></div>
+      <div class="form-group"><label><span data-i18n="LABEL_PH_MIN_OPT">Minimo Ottimale</span>:</label><input type="number" step="0.1" id="cfgPhMin"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_PH_MAX_OPT">Massimo Ottimale</span>:</label><input type="number" step="0.1" id="cfgPhMax"></div>
+      <div class="form-group"><label><span data-i18n="LABEL_PH_OFFSET">Offset Calibrazione Sensore</span>:</label><input type="number" step="0.1" id="cfgPhOffset"></div>
+      <button class="btn btn-cyan" onclick="savePhSettings()">💾 <span data-i18n="BTN_SAVE_PH">Salva Parametri pH</span></button>
     </div>
     <!-- RELÈ -->
     <div class="card">
@@ -203,6 +219,29 @@
     </div>
 
 
+    <!-- EMAIL NOTIFICATIONS -->
+    <div class="card">
+      <div class="card-title">📧 <span data-i18n="TITLE_EMAIL_CONFIG">Configurazione Notifiche Email (SMTP)</span></div>
+      <div style="display:flex; align-items:center; margin-bottom:15px;">
+        <input type="checkbox" id="cfgEmailEnabled" onchange="toggleEmailFields()" style="margin-right:10px; width:20px; height:20px;">
+        <label for="cfgEmailEnabled" style="font-weight:bold;"><span data-i18n="LABEL_ENABLE_EMAIL">Abilita Notifiche Email</span></label>
+      </div>
+      <div id="emailFieldsWrapper">
+        <div class="form-group"><label><span data-i18n="LABEL_SMTP_HOST">Host SMTP:</span></label><input type="text" id="cfgSmtpHost" placeholder="es. smtp.gmail.com"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_SMTP_PORT">Porta SMTP:</span></label><input type="number" id="cfgSmtpPort" min="1" max="65535" placeholder="es. 465"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_SMTP_USER">Utente SMTP:</span></label><input type="text" id="cfgSmtpUser" placeholder="es. tuamail@gmail.com"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_SMTP_PASS">Password SMTP:</span></label><input type="password" id="cfgSmtpPassword" data-i18n-placeholder="MSG_UNCHANGED_IF_EMPTY" placeholder="(invariata se vuoto)"></div>
+        <div style="display:flex; align-items:center; margin-bottom:15px;">
+          <input type="checkbox" id="cfgSmtpSsl" style="margin-right:10px; width:20px; height:20px;">
+          <label for="cfgSmtpSsl"><span data-i18n="LABEL_SMTP_SSL">Usa SSL (Consigliato, porta 465)</span></label>
+        </div>
+        <div class="form-group"><label><span data-i18n="LABEL_EMAIL_SENDER">Email Mittente (opzionale):</span></label><input type="text" id="cfgEmailSender" placeholder="es. acquario@casa.com"></div>
+        <div class="form-group"><label><span data-i18n="LABEL_EMAIL_RECIPIENTS">Destinatari (separati da virgola):</span></label><input type="text" id="cfgEmailRecipients" placeholder="es. avvisi@email.com, test@email.com"></div>
+        <button class="btn btn-outline" onclick="testEmail()" style="margin-bottom: 10px;"><span data-i18n="BTN_TEST_EMAIL">✉️ Invia Email di Test</span></button>
+      </div>
+      <button class="btn btn-cyan" onclick="saveEmailSettings()"><span data-i18n="BTN_SAVE_EMAIL">💾 Salva Impostazioni Email</span></button>
+    </div>
+
     <!-- SISTEMA -->
     <div class="card">
       <div class="card-title">⚙️ <span data-i18n="TITLE_SYSTEM_SETTINGS">Impostazioni di Sistema</span></div>
@@ -249,6 +288,7 @@
       </div>
       <button class="btn btn-cyan" onclick="saveScreensaverSettings()">💾 <span data-i18n="BTN_SAVE_SCREENSAVER">Salva Risparmio Energia</span></button>
     </div>
+    </div>
     <!-- EDITOR RAW -->
     <div class="card full-width">
       <div class="card-title">📁 <span data-i18n="TITLE_RAW_CFG">File di Configurazione SD (/config.cfg)</span></div>
@@ -270,6 +310,10 @@
   function toggleWifiStaticFields() {
     const cb = document.getElementById('cfgWifiStaticEn');
     document.getElementById('wifiStaticFieldsWrapper').style.display = cb.checked ? 'block' : 'none';
+  }
+  function toggleEmailFields() {
+    const cb = document.getElementById('cfgEmailEnabled');
+    document.getElementById('emailFieldsWrapper').style.display = cb.checked ? 'block' : 'none';
   }
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -329,6 +373,12 @@
       document.getElementById('statTempMin').innerText = parseFloat(d.temp_min).toFixed(1) + ' C';
       document.getElementById('statTempMax').innerText = parseFloat(d.temp_max).toFixed(1) + ' C';
       document.getElementById('statTempOff').innerText = parseFloat(d.temp_offset).toFixed(1) + ' C';
+      
+      document.getElementById('phVal').innerText = parseFloat(d.ph).toFixed(1);
+      document.getElementById('phStatusText').innerText = d.ph_status || '--';
+      document.getElementById('statPhMin').innerText = parseFloat(d.ph_min).toFixed(1);
+      document.getElementById('statPhMax').innerText = parseFloat(d.ph_max).toFixed(1);
+      document.getElementById('statPhOff').innerText = parseFloat(d.ph_offset).toFixed(1);
       const lightEl = document.getElementById('lightStatus');
       lightEl.innerText = d.light_status || '--';
       lightEl.style.color = d.light_on ? 'var(--gold)' : 'var(--text-muted)';
@@ -347,6 +397,9 @@
         document.getElementById('cfgTempMin').value = parseFloat(d.temp_min).toFixed(1);
         document.getElementById('cfgTempMax').value = parseFloat(d.temp_max).toFixed(1);
         document.getElementById('cfgTempOffset').value = parseFloat(d.temp_offset).toFixed(1);
+        document.getElementById('cfgPhMin').value = parseFloat(d.ph_min).toFixed(1);
+        document.getElementById('cfgPhMax').value = parseFloat(d.ph_max).toFixed(1);
+        document.getElementById('cfgPhOffset').value = parseFloat(d.ph_offset).toFixed(1);
         document.getElementById('cfgRelayInv').value = d.relay_inv ? '1' : '0';
         document.getElementById('timeOn').value = pad(d.light_on_h) + ':' + pad(d.light_on_m);
         document.getElementById('timeOff').value = pad(d.light_off_h) + ':' + pad(d.light_off_m);
@@ -382,6 +435,17 @@
         document.getElementById('cfgDebug').value = d.debug ? 'true' : 'false';
         document.getElementById('cfgScreenMode').value = d.screen_mode || 1;
         document.getElementById('cfgScreensaver').value = d.screensaver_t || 0;
+        
+        // Email
+        const cbEmail = document.getElementById('cfgEmailEnabled');
+        cbEmail.checked = !!d.email_enabled;
+        toggleEmailFields();
+        document.getElementById('cfgSmtpHost').value = d.smtp_host || '';
+        document.getElementById('cfgSmtpPort').value = d.smtp_port || 465;
+        document.getElementById('cfgSmtpUser').value = d.smtp_user || '';
+        document.getElementById('cfgSmtpSsl').checked = !!d.smtp_ssl;
+        document.getElementById('cfgEmailSender').value = d.email_sender || '';
+        document.getElementById('cfgEmailRecipients').value = d.email_recipients || '';
       }
     } catch(e) { console.error('API Error:', e); }
   }
@@ -408,6 +472,11 @@
   async function saveTempSettings() {
     const b = 'min_t='+document.getElementById('cfgTempMin').value+'&max_t='+document.getElementById('cfgTempMax').value+'&offset='+document.getElementById('cfgTempOffset').value;
     await fetch('/api/settings/temp',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function savePhSettings() {
+    const b = 'min_ph='+document.getElementById('cfgPhMin').value+'&max_ph='+document.getElementById('cfgPhMax').value+'&offset='+document.getElementById('cfgPhOffset').value;
+    await fetch('/api/settings/ph',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }
   async function saveRelaySettings() {
@@ -440,6 +509,23 @@
     const b='enabled='+en+'&server='+encodeURIComponent(document.getElementById('cfgMqttServer').value)+'&port='+document.getElementById('cfgMqttPort').value+'&user='+encodeURIComponent(document.getElementById('cfgMqttUser').value)+'&pass='+encodeURIComponent(document.getElementById('cfgMqttPass').value);
     await fetch('/api/settings/mqtt',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function saveEmailSettings() {
+    const en = document.getElementById('cfgEmailEnabled').checked ? '1' : '0';
+    const ssl = document.getElementById('cfgSmtpSsl').checked ? '1' : '0';
+    const b='email_enabled='+en+'&smtp_host='+encodeURIComponent(document.getElementById('cfgSmtpHost').value)+'&smtp_port='+document.getElementById('cfgSmtpPort').value+'&smtp_user='+encodeURIComponent(document.getElementById('cfgSmtpUser').value)+'&smtp_password='+encodeURIComponent(document.getElementById('cfgSmtpPassword').value)+'&smtp_ssl='+ssl+'&email_sender='+encodeURIComponent(document.getElementById('cfgEmailSender').value)+'&email_recipients='+encodeURIComponent(document.getElementById('cfgEmailRecipients').value);
+    await fetch('/api/email/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+    showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
+  }
+  async function testEmail() {
+    showToast('Invio email in corso...', 5000);
+    const res = await fetch('/api/email/test',{method:'POST'});
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      showToast('Email inviata con successo!', 4000);
+    } else {
+      showToast('Errore invio email!', 4000);
+    }
   }
   async function saveLanguageSetting() {
     showToast(i18nDict['BTN_APPLY_LANG'] || 'Restarting...');

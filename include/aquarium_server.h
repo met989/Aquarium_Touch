@@ -21,6 +21,7 @@ private:
   void handleApiSetSchedule();
   void handleApiToggleRelayInvert();
   void handleApiSetTempSettings();
+  void handleApiSetPhSettings();
   void handleApiSetTimeSettings();
   void handleApiNtpSync();
   void handleApiSetRelaySettings();
@@ -34,6 +35,8 @@ private:
   void handleApiScanI2C();
   void handleApiConfigRawGet();
   void handleApiConfigRawPost();
+  void handleApiSetEmailSettings();
+  void handleApiTestEmail();
 
 
   WebServer m_server;

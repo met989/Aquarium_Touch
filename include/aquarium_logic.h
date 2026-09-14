@@ -35,6 +35,11 @@ struct AquariumConfig {
   char langFile[64]     = DEFAULT_LANGUAGE_FILE;
   uint16_t screensaverTime = 0; // seconds; 0 = disabled (MAI)
   bool autoDimming      = false;
+  
+  // pH Thresholds & Calibration
+  float targetPhMin     = 6.5f;
+  float targetPhMax     = 7.5f;
+  float phOffset        = 0.0f;
 };
 
 struct WifiNetworkItem {
@@ -52,11 +57,16 @@ public:
   // Temperature Methods
   float getTemperature() const { return m_currentTemp; }
   float getPhValue() const { return m_currentPh; }
+  int getPhStatus() const { return m_lastPhStatus; }
   bool isWaterLevelOk();
   float getMinTemp() const { return m_minTemp; }
   float getMaxTemp() const { return m_maxTemp; }
   bool isSensorConnected() const { return m_sensorConnected; }
   TempStatus getTempStatus() const;
+  
+  // Alarms and Notifications
+  void checkAlarmsAndNotify();
+  bool sendEmail(const String& subject, const String& body);
 
   // Light & Relay  // Getters
   bool isLightOn() const { return m_lightOn; }
@@ -86,6 +96,8 @@ public:
   void publishHomeAssistantDiscovery();
   void resetMqttRetries() { m_mqttConnectAttempts = 0; }
   int getMqttConnectAttempts() const { return m_mqttConnectAttempts; }
+  bool isMqttConnected() const;
+  int getMqttState() const;
 
   // WiFi Management Methods
   bool isWifiConnected() const;
@@ -109,8 +121,6 @@ public:
   // I2C Scanner
   String scanI2C() const;
 
-
-
   // Time & Clock Methods
   void getTime(int& h, int& m, int& s) const;
   void getDate(int& day, int& month, int& year) const;
@@ -121,16 +131,14 @@ public:
   bool syncNTP();
   String getNtpStatus() const { return m_ntpStatus; }
 
-
-
-
-
   // Schedule Configuration
   const AquariumConfig& getConfig() const { return m_config; }
   void setScheduleOn(uint8_t h, uint8_t m);
   void setScheduleOff(uint8_t h, uint8_t m);
   void setTargetTemp(float minT, float maxT);
   void setTempOffset(float offset);
+  void setTargetPh(float minPh, float maxPh);
+  void setPhOffset(float offset);
   void setScreensaverTime(uint16_t seconds);
 
   // SD Config Serialization
@@ -163,8 +171,8 @@ private:
   uint32_t m_lastTimeUpdate = 0;
   uint32_t m_lastMqttPublish = 0;
   uint32_t m_uptimeSeconds = 32400; // Simulated start at 09:00:00 AM
-  String m_ntpStatus = "NTP: Inattivo";
-  String m_wifiScanStatus = "Premi Scansiona";
+  String m_ntpStatus = "NTP: Inactive";
+  String m_wifiScanStatus = "Press Scan";
 
   bool m_wifiScanning = false;
   uint8_t m_wifiScanCounter = 0;
@@ -178,9 +186,12 @@ private:
   uint32_t m_wifiWaitStartTime = 0;
   uint8_t m_wifiAutoRetries = 0;
   uint8_t m_mqttConnectAttempts = 0;
+  
+  // Alarm states
+  TempStatus m_lastTempStatus = TEMP_OPTIMAL;
+  int m_lastPhStatus = 0; // 0 = OK, 1 = Low, 2 = High
+  bool m_lastWaterLevelOk = true;
 };
-
-
 
 bool writeWholeConfigFileSafe();
 bool loadConfigFromSD(bool& created, bool& updated);

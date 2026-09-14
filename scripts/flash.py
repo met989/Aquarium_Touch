@@ -70,7 +70,6 @@ def main():
         if os.name == 'nt':
             # Tentativo 1: Usare powershell per avere i nomi completi (es. "USB-SERIAL CH340")
             try:
-                import subprocess
                 import re
                 cmd = 'Get-WmiObject Win32_PnPEntity | Where-Object { $_.Name -match "\\(COM\\d+\\)" } | Select-Object -ExpandProperty Name'
                 out = subprocess.check_output(['powershell', '-Command', cmd], text=True, stderr=subprocess.DEVNULL)

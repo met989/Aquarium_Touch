@@ -9,8 +9,7 @@
 #include <Update.h>
 #include <HTTPUpdate.h>
 #include <ArduinoJson.h>
-
-
+#include <ESP_Mail_Client.h>
 #include <Wire.h>
 
 OneWire oneWire(TEMP_SENSOR_PIN);
@@ -60,11 +59,9 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(false);
   m_wifiAutoRetries = 0;
-  WiFi.disconnect(true);
-  delay(100);
 
   if (ssid.length() == 0 || ssid == "SSID_WIFI") {
-    m_wifiScanStatus = "Nessun SSID impostato";
+    m_wifiScanStatus = String(langManager.getText("MSG_WIFI_NO_SSID"));
     m_wifiConnectState = WIFI_CONN_IDLE;
     return;
   }
@@ -84,15 +81,16 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   } else {
     WiFi.begin(ssid.c_str());
   }
-  m_wifiScanStatus = "Tentativo di connessione wifi... (" + String(m_wifiAutoRetries + 1) + "/3)";
+  m_wifiScanStatus = String(langManager.getText("MSG_WIFI_CONNECTING")) + String(m_wifiAutoRetries + 1) + "/3)";
   m_wifiConnectState = WIFI_CONN_CONNECTING;
   m_wifiConnectStartTime = millis();
   saveConfigSD();
 }
 
 void AquariumLogic::startWifiConnection() {
-  WiFi.disconnect(true);
-  delay(100);
+  WiFi.setHostname("aquarium-touch");
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(false);
 
   if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {
     IPAddress localIP, gateway, subnet, dns1, dns2;
@@ -116,7 +114,7 @@ void AquariumLogic::startWifiConnection() {
 }
 
 void AquariumLogic::disconnectWifi() {
-  WiFi.disconnect(true);
+  WiFi.disconnect();
   m_wifiScanStatus = langManager.getText("MSG_DISCONNECTED", "DISCONNECTED");
 }
 
@@ -124,7 +122,7 @@ void AquariumLogic::startAsyncWifiScan() {
   if (m_wifiScanning) return;
 
   if (m_wifiConnectState != WIFI_CONN_IDLE && m_wifiConnectState != WIFI_CONN_SUCCESS) {
-      WiFi.disconnect(true);
+      WiFi.disconnect();
       m_wifiConnectState = WIFI_CONN_IDLE;
   }
 
@@ -149,6 +147,8 @@ WifiNetworkItem AquariumLogic::getWifiNetwork(int idx) const {
 
 void AquariumLogic::init() {
   // Disabilita la riconnessione automatica per gestirla noi e non freezare
+  WiFi.mode(WIFI_STA);
+  WiFi.setHostname("aquarium-touch");
   WiFi.setAutoReconnect(false);
 
   // Configurazione Pin Diretti
@@ -218,7 +218,7 @@ String AquariumLogic::scanI2C() const {
     delay(1);
   }
   if (nDevices == 0) {
-    result = "Nessun dispositivo I2C trovato";
+    result = "No I2C device found";
   }
   return result;
 }
@@ -230,6 +230,7 @@ void AquariumLogic::update() {
   if (now - lastPrint >= 5000) {
       lastPrint = now;
       Serial.printf("AquariumLogic::update() - WiFi Status: %d, IP: %s\n", WiFi.status(), WiFi.localIP().toString().c_str());
+      checkAlarmsAndNotify();
   }
 
   // Automatic NTP Sync when Wi-Fi is connected (on first connect & every 24 hours)
@@ -302,16 +303,16 @@ void AquariumLogic::update() {
     if (st == WL_CONNECTED) {
       m_wifiConnectState = WIFI_CONN_SUCCESS;
       m_wifiConnectResultTime = millis();
-      m_wifiScanStatus = "Connesso a " + cfg.wifiSsid;
+      m_wifiScanStatus = String(langManager.getText("MSG_WIFI_CONNECTED_TO")) + cfg.wifiSsid;
     } else if (millis() - m_wifiConnectStartTime > 15000 || st == WL_CONNECT_FAILED || st == WL_NO_SSID_AVAIL) {
       m_wifiAutoRetries++;
-      m_wifiScanStatus = "Connessione fallita (Tentativo " + String(m_wifiAutoRetries) + "/3)";
-      WiFi.disconnect(true);
+      m_wifiScanStatus = String(langManager.getText("MSG_WIFI_FAIL_ATTEMPT")) + String(m_wifiAutoRetries) + "/3)";
+      WiFi.disconnect();
       
       if (m_wifiAutoRetries >= 3) {
         m_wifiConnectState = WIFI_CONN_WAIT_LONG;
         m_wifiWaitStartTime = millis();
-        m_wifiScanStatus = "Connessione fallita. Riprovo tra 1 ora.";
+        m_wifiScanStatus = String(langManager.getText("MSG_WIFI_FAIL_RETRY"));
       } else {
         m_wifiConnectState = WIFI_CONN_WAIT_SHORT;
         m_wifiWaitStartTime = millis();
@@ -378,7 +379,7 @@ void AquariumLogic::readSensor() {
     
     // Formula placeholder (lineare). L'utente fornirà i valori di calibrazione.
     // Esempio generico: pH = 3.5 * voltage + offset
-    float calculatedPh = 3.5f * voltage; 
+    float calculatedPh = (3.5f * voltage) + m_config.phOffset; 
     
     // Media mobile semplice
     m_currentPh = (m_currentPh == 7.0f) ? calculatedPh : (m_currentPh * 0.8f + calculatedPh * 0.2f);
@@ -394,10 +395,140 @@ bool AquariumLogic::isWaterLevelOk() {
   return true; // Se MCP non c'è, diciamo che è tutto ok
 }
 
+void AquariumLogic::checkAlarmsAndNotify() {
+  if (!cfg.emailEnabled || WiFi.status() != WL_CONNECTED) return;
+  
+  TempStatus currentTempStatus = m_sensorConnected ? getTempStatus() : TEMP_OPTIMAL;
+  float phHyst = 0.2f;
+  int currentPhStatus = m_lastPhStatus;
+  if (m_lastPhStatus == 1) {
+    if (m_currentPh >= m_config.targetPhMin + phHyst) currentPhStatus = 0;
+  } else if (m_lastPhStatus == 2) {
+    if (m_currentPh <= m_config.targetPhMax - phHyst) currentPhStatus = 0;
+  } else {
+    if (m_currentPh <= m_config.targetPhMin - phHyst) currentPhStatus = 1;
+    if (m_currentPh >= m_config.targetPhMax + phHyst) currentPhStatus = 2;
+  }
+  
+  bool currentWaterLevelOk = isWaterLevelOk();
+  
+  String subject = "";
+  String body = "";
+  char buf[256];
+  
+  if (currentTempStatus != m_lastTempStatus) {
+    if (currentTempStatus == TEMP_TOO_HOT) {
+      subject = langManager.getText("ALARM_TEMP_HIGH_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("ALARM_TEMP_HIGH_BODY"), m_currentTemp, m_config.targetTempMax);
+      body = String(buf);
+    } else if (currentTempStatus == TEMP_TOO_COLD) {
+      subject = langManager.getText("ALARM_TEMP_LOW_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("ALARM_TEMP_LOW_BODY"), m_currentTemp, m_config.targetTempMin);
+      body = String(buf);
+    } else {
+      subject = langManager.getText("INFO_TEMP_OK_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("INFO_TEMP_OK_BODY"), m_currentTemp);
+      body = String(buf);
+    }
+    m_lastTempStatus = currentTempStatus;
+    sendEmail(subject, body);
+  }
+  
+  if (currentPhStatus != m_lastPhStatus) {
+    if (currentPhStatus == 2) {
+      subject = langManager.getText("ALARM_PH_HIGH_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("ALARM_PH_HIGH_BODY"), m_currentPh, m_config.targetPhMax);
+      body = String(buf);
+    } else if (currentPhStatus == 1) {
+      subject = langManager.getText("ALARM_PH_LOW_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("ALARM_PH_LOW_BODY"), m_currentPh, m_config.targetPhMin);
+      body = String(buf);
+    } else {
+      subject = langManager.getText("INFO_PH_OK_SUB");
+      snprintf(buf, sizeof(buf), langManager.getText("INFO_PH_OK_BODY"), m_currentPh);
+      body = String(buf);
+    }
+    m_lastPhStatus = currentPhStatus;
+    sendEmail(subject, body);
+  }
+  
+  if (currentWaterLevelOk != m_lastWaterLevelOk) {
+    if (!currentWaterLevelOk) {
+      subject = langManager.getText("ALARM_WATER_LOW_SUB");
+      body = langManager.getText("ALARM_WATER_LOW_BODY");
+    } else {
+      subject = langManager.getText("INFO_WATER_OK_SUB");
+      body = langManager.getText("INFO_WATER_OK_BODY");
+    }
+    m_lastWaterLevelOk = currentWaterLevelOk;
+    sendEmail(subject, body);
+  }
+}
+
+bool AquariumLogic::sendEmail(const String& subject, const String& body) {
+  if (!cfg.emailEnabled || cfg.smtpHost.isEmpty() || cfg.smtpUser.isEmpty()) return false;
+  
+  SMTPSession smtp;
+  smtp.debug(0);
+  
+  Session_Config config;
+  config.server.host_name = cfg.smtpHost;
+  config.server.port = cfg.smtpPort;
+  config.login.email = cfg.smtpUser;
+  config.login.password = cfg.smtpPassword;
+  
+  // Set SSL configuration
+  // For ESP Mail Client 3.x, you just avoid setting SSL if not needed, or set ports correctly
+  // We can just rely on the port to define SSL behavior (465 = SSL, 25/587 = No/STARTTLS)
+  // Or we can set nothing since the library handles it natively.
+
+  
+  SMTP_Message message;
+  message.sender.name = "Aquarium OS Touch";
+  message.sender.email = cfg.emailSender.isEmpty() ? cfg.smtpUser : cfg.emailSender;
+  message.subject = subject;
+  
+  // Parse recipients
+  String rec = cfg.emailRecipients;
+  int commaIndex = -1;
+  do {
+    commaIndex = rec.indexOf(',');
+    String r = (commaIndex != -1) ? rec.substring(0, commaIndex) : rec;
+    r.trim();
+    if (!r.isEmpty()) message.addRecipient(r, r);
+    rec = rec.substring(commaIndex + 1);
+  } while (commaIndex != -1);
+  
+  message.text.content = body;
+  
+  if (!smtp.connect(&config)) {
+    Serial.println("[SMTP] Connection error");
+    return false;
+  }
+  
+  if (!MailClient.sendMail(&smtp, &message)) {
+    Serial.println("[SMTP] Error sending Email: " + smtp.errorReason());
+    return false;
+  }
+  
+  Serial.println("[SMTP] Email successfully sent!");
+  return true;
+}
+
 TempStatus AquariumLogic::getTempStatus() const {
-  if (m_currentTemp < m_config.targetTempMin) return TEMP_TOO_COLD;
-  if (m_currentTemp > m_config.targetTempMax) return TEMP_TOO_HOT;
-  return TEMP_OPTIMAL;
+  float hyst = 0.2f; // Isteresi per evitare spam di notifiche
+  
+  if (m_lastTempStatus == TEMP_TOO_COLD) {
+    if (m_currentTemp >= m_config.targetTempMin + hyst) return TEMP_OPTIMAL;
+    return TEMP_TOO_COLD;
+  } else if (m_lastTempStatus == TEMP_TOO_HOT) {
+    if (m_currentTemp <= m_config.targetTempMax - hyst) return TEMP_OPTIMAL;
+    return TEMP_TOO_HOT;
+  } else {
+    if (m_currentTemp <= m_config.targetTempMin - hyst) return TEMP_TOO_COLD;
+    if (m_currentTemp >= m_config.targetTempMax + hyst) return TEMP_TOO_HOT;
+    return TEMP_OPTIMAL;
+  }
 }
 
 void AquariumLogic::evaluateSchedule() {
@@ -474,11 +605,11 @@ void AquariumLogic::setAutoSchedule(bool enable) {
 
 bool AquariumLogic::syncNTP() {
   if (WiFi.status() != WL_CONNECTED) {
-    m_ntpStatus = "NTP: Wi-Fi non connesso";
+    m_ntpStatus = String(langManager.getText("MSG_NTP_WIFI_OFF"));
     return false;
   }
   if (cfg.ntpServer1.length() == 0) {
-    m_ntpStatus = "NTP: Server non impostato";
+    m_ntpStatus = String(langManager.getText("MSG_NTP_NO_SERVER"));
     return false;
   }
 
@@ -493,11 +624,11 @@ bool AquariumLogic::syncNTP() {
   struct tm timeinfo;
   if (getLocalTime(&timeinfo, 3000)) {
     m_uptimeSeconds = timeinfo.tm_hour * 3600 + timeinfo.tm_min * 60 + timeinfo.tm_sec;
-    m_ntpStatus = "NTP: Sincronizzato OK";
+    m_ntpStatus = String(langManager.getText("MSG_NTP_OK"));
     evaluateSchedule();
     return true;
   } else {
-    m_ntpStatus = "NTP: In attesa risposta...";
+    m_ntpStatus = String(langManager.getText("MSG_NTP_WAIT"));
     return false;
   }
 }
@@ -600,6 +731,22 @@ void AquariumLogic::setTempOffset(float offset) {
   saveConfigSD();
 }
 
+void AquariumLogic::setTargetPh(float minPh, float maxPh) {
+  minPh = roundf(minPh * 10.0f) / 10.0f;
+  maxPh = roundf(maxPh * 10.0f) / 10.0f;
+  if (minPh < 0.0f) minPh = 0.0f;
+  if (maxPh > 14.0f) maxPh = 14.0f;
+  if (minPh > maxPh - 0.2f) minPh = maxPh - 0.2f;
+  m_config.targetPhMin = minPh;
+  m_config.targetPhMax = maxPh;
+  saveConfigSD();
+}
+
+void AquariumLogic::setPhOffset(float offset) {
+  m_config.phOffset = offset;
+  saveConfigSD();
+}
+
 bool AquariumLogic::loadConfigSD() {
   if (!SD.exists(CONFIG_PATH)) return false;
   File f = SD.open(CONFIG_PATH, FILE_READ);
@@ -623,6 +770,9 @@ bool AquariumLogic::loadConfigSD() {
     else if (key.equalsIgnoreCase("target_min_t")) m_config.targetTempMin = val.toFloat();
     else if (key.equalsIgnoreCase("target_max_t")) m_config.targetTempMax = val.toFloat();
     else if (key.equalsIgnoreCase("temp_offset"))  m_config.tempOffset    = val.toFloat();
+    else if (key.equalsIgnoreCase("target_ph_min")) m_config.targetPhMin  = val.toFloat();
+    else if (key.equalsIgnoreCase("target_ph_max")) m_config.targetPhMax  = val.toFloat();
+    else if (key.equalsIgnoreCase("ph_offset"))    m_config.phOffset      = val.toFloat();
     else if (key.equalsIgnoreCase("relay_inv"))    m_config.relayInverted = (val == "1" || val.equalsIgnoreCase("true"));
     else if (key.equalsIgnoreCase("date_format"))  m_config.dateFormat    = val.toInt() % 3;
     else if (key.equalsIgnoreCase("screensaver_t")) m_config.screensaverTime = (uint16_t)constrain(val.toInt(), 0, 3600);

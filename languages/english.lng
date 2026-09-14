@@ -8,14 +8,16 @@ TITLE_LIGHT_CONTROL=LIGHT
 TITLE_SETTINGS=SETTINGS
 MENU_DATETIME=1. Date & Time
 MENU_TEMP_TARGET=2. Target Temp
-MENU_RELAY_STATE=3. Relay State
-MENU_WIFI_MGMT=4. Wi-Fi
-MENU_SYS_VERSION=5. System Information
-MENU_LANGUAGE=6. Language
-MENU_ENERGY_SAVING=7. Energy Saving
-MENU_FACTORY_RESET=8. Factory Reset
-MENU_HARDWARE=9. I2C
-MENU_SCREEN=10. Screen
+MENU_PH_TARGET=3. Target pH
+MENU_RELAY_STATE=4. Relay State
+MENU_WIFI_MGMT=5. Wi-Fi
+MENU_SYS_VERSION=6. System Information
+MENU_LANGUAGE=7. Language
+MENU_ENERGY_SAVING=8. Energy Saving
+MENU_FACTORY_RESET=9. Factory Reset
+MENU_HARDWARE=10. Hardware & I2C
+MENU_SCREEN=11. Screen
+MENU_LIGHT_TIMER=12. Light Timer
 
 BTN_BACK=< HOME
 BTN_CANCEL=< CANCEL
@@ -190,3 +192,67 @@ MSG_MQTT_ERROR=MQTT Error: Connection failed. The switch has been disabled for s
 BTN_REBOOT=Reboot
 MSG_CONFIRM_REBOOT=Do you want to reboot the system?
 BTN_OTA_UPDATE=OTA Update
+
+# Email Configuration
+TITLE_EMAIL_CONFIG=Email Notifications Config (SMTP)
+LABEL_ENABLE_EMAIL=Enable Email Notifications
+LABEL_SMTP_HOST=SMTP Host:
+LABEL_SMTP_PORT=SMTP Port:
+LABEL_SMTP_USER=SMTP User:
+LABEL_SMTP_PASS=SMTP Password:
+LABEL_SMTP_SSL=Use SSL (Recommended, port 465)
+LABEL_EMAIL_SENDER=Sender Email (optional):
+LABEL_EMAIL_RECIPIENTS=Recipients (comma separated):
+BTN_TEST_EMAIL=✉️ Send Test Email
+BTN_SAVE_EMAIL=💾 Save Email Settings
+
+# NTP Status
+MSG_NTP_WIFI_OFF=NTP: Wi-Fi not connected
+MSG_NTP_NO_SERVER=NTP: Server not set
+MSG_NTP_OK=NTP: Sync OK
+MSG_NTP_WAIT=NTP: Waiting for reply...
+
+# WiFi Status
+MSG_WIFI_NO_SSID=No SSID set
+MSG_WIFI_CONNECTING=Attempting wifi connection... (
+MSG_WIFI_CONNECTED_TO=Connected to 
+MSG_WIFI_FAIL_ATTEMPT=Connection failed (Attempt 
+MSG_WIFI_FAIL_RETRY=Connection failed. Retrying in 1 hour.
+
+# Alarms
+ALARM_TEMP_HIGH_SUB=Alarm: High Temperature!
+ALARM_TEMP_HIGH_BODY=Aquarium temperature (%.1f C) exceeded the maximum limit of %.1f C.
+ALARM_TEMP_LOW_SUB=Alarm: Low Temperature!
+ALARM_TEMP_LOW_BODY=Aquarium temperature (%.1f C) dropped below the minimum limit of %.1f C.
+INFO_TEMP_OK_SUB=Info: Optimal Temperature
+INFO_TEMP_OK_BODY=Aquarium temperature returned to optimal values (%.1f C).
+
+ALARM_PH_HIGH_SUB=Alarm: High pH!
+ALARM_PH_HIGH_BODY=Aquarium pH (%.1f) exceeded the maximum limit of %.1f.
+ALARM_PH_LOW_SUB=Alarm: Low pH!
+ALARM_PH_LOW_BODY=Aquarium pH (%.1f) dropped below the minimum limit of %.1f.
+INFO_PH_OK_SUB=Info: Optimal pH
+INFO_PH_OK_BODY=Aquarium pH returned to optimal values (%.1f).
+
+ALARM_WATER_LOW_SUB=Alarm: Low Water Level!
+ALARM_WATER_LOW_BODY=Aquarium water level dropped below the safety level.
+INFO_WATER_OK_SUB=Info: Water Level Restored
+INFO_WATER_OK_BODY=Water level returned to normal.
+
+# pH Settings
+TITLE_PH_THRESHOLDS=pH Thresholds and Calibration
+LABEL_PH_MIN_OPT=Optimal Min
+LABEL_PH_MAX_OPT=Optimal Max
+LABEL_PH_OFFSET=Sensor Calibration Offset
+BTN_SAVE_PH=Save pH Settings
+TITLE_WATER_PH=Water pH
+LABEL_PH_OFFSET_S=Sensor Offset
+MSG_PH_OPTIMAL=OPTIMAL
+MSG_PH_LOW=TOO LOW
+MSG_PH_HIGH=TOO HIGH
+
+TITLE_PH_TARGET=pH SETTINGS
+LABEL_PH_MIN=MIN pH:
+LABEL_PH_MAX=MAX pH:
+LABEL_PH_OFFSET_TFT=pH OFFSET:
+

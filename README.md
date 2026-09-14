@@ -73,8 +73,9 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Scansione asincrona delle reti Wi-Fi direttamente dall'interfaccia touch con selezione ed inserimento password a schermo.
   - Sincronizzazione dell'ora solare via server NTP (`pool.ntp.org`, `time.nist.gov`) con fuso orario regolabile (tramite comodo menu a tendina nella Web UI).
   - Supporto per IP Statico o DHCP.
-  - Sistema di **Safety & Anti-Freeze**: Se la connessione Wi-Fi fallisce per 3 volte, il sistema interrompe i tentativi automatici per non bloccare l'interfaccia, in attesa di un riavvio della scansione manuale.
-  - Integrazione MQTT avanzata: attivabile/disattivabile dinamicamente tramite apposita spunta dall'interfaccia Web. Se il broker risulta irraggiungibile per 3 tentativi consecutivi, il servizio si auto-disattiva silenziosamente per proteggere le performance e la reattività del display.
+  - **Safety & Cold Boot Anti-Crash:** Inizializzazione ottimizzata della radio Wi-Fi per evitare blocchi o "kernel panic" all'accensione. Se la connessione fallisce per 3 volte, il sistema interrompe i tentativi automatici in attesa di un riavvio della scansione manuale.
+  - **Integrazione MQTT Avanzata e Dinamica:** Configurazione del broker aggiornata in tempo reale "al volo" (ogni 30s) dalla Web UI, senza necessità di riavviare l'ESP32.
+  - **Indicatori di Stato Minimalisti:** La Dashboard integra comodi "semafori" (Verde = Connesso, Giallo = In connessione/Attesa, Rosso = Errore o IP errato) che mostrano a colpo d'occhio lo stato di Wi-Fi e MQTT mantenendo il design super pulito.
 - **Server Web Integrato & API REST:**
   - Dashboard Web responsive per controllare luci, orari, temperature min/max e configurazioni.
   - API HTTP in formato JSON per l'integrazione con Home Assistant, Node-RED o script esterni.
@@ -148,15 +149,17 @@ L'interfaccia utente (UI) è sviluppata su libreria `TFT_eSPI` sfruttando un buf
 3. **Programmazione (Schedule):** Impostazione degli orari di accensione (ON) e spegnimento (OFF) dell'illuminazione acquario.
 4. **Impostazioni (Settings):** Menu multi-pagina (4 voci per pagina) per configurare:
    - **1. Data & Ora:** Configurazione data, ora e sincronizzazione NTP.
-   - **2. Temp. Target:** Target min/max e offset di calibrazione.
-   - **3. Stato Luce:** Impostazioni polarità relè (Active HIGH/LOW).
-   - **4. Wi-Fi:** Connessione, scansione (tastiera integrata) e gestione rete.
-   - **5. Info di sistema:** Versione firmware, memoria e framework.
-   - **6. Lingua:** Selezione lingua di sistema (es. Italiano, Inglese).
-   - **7. Risparmio energia:** Impostazioni Screensaver e spegnimento retroilluminazione.
-   - **8. Ripristino Fabbrica:** Reset di tutti i parametri utente.
-   - **9. I2C:** Strumento di scansione hardware del bus I2C.
-   - **10. Schermo:** Controllo luminosità manuale o Auto-Dimming (sensore LDR).
+   - **2. Temp. Target:** Target min/max temperatura e offset di calibrazione.
+   - **3. Target pH:** Impostazioni per i limiti di allarme pH e offset sensore.
+   - **4. Stato Luce:** Impostazioni polarità relè (Active HIGH/LOW).
+   - **5. Wi-Fi:** Connessione, scansione (tastiera integrata) e gestione rete.
+   - **6. Info di sistema:** Versione firmware, memoria e framework.
+   - **7. Lingua:** Selezione lingua di sistema (es. Italiano, Inglese).
+   - **8. Risparmio energia:** Impostazioni Screensaver e spegnimento retroilluminazione.
+   - **9. Ripristino Fabbrica:** Reset di tutti i parametri utente.
+   - **10. Hardware & I2C:** Strumento di scansione hardware del bus I2C.
+   - **11. Schermo:** Controllo luminosità manuale o Auto-Dimming (sensore LDR).
+   - **12. Timer Luce:** Accesso rapido alle impostazioni del programmatore orario.
 
 ---
 
@@ -223,7 +226,7 @@ Aquarium_Touch/
 │   ├── language_manager.h      # Gestore del dizionario di localizzazione i18n
 │   ├── embedded_languages.h    # Header autogenerato con lingue integrate nella Flash
 │   ├── embedded_web.h          # Header autogenerato con il file web compresso in GZIP
-│   └── lv_conf.h               # Configurazione LVGL (eredità di progetto)
+
 ├── src/
 │   ├── main.cpp                # Setup, Loop principale, gestione Boot GIF e calibrazione Touch
 │   ├── aquarium_logic.cpp      # Logica di business, schedulazione, sensore DS18B20, gestione SD
@@ -298,7 +301,7 @@ Se il Wi-Fi non è configurato o preferisci l'aggiornamento classico via cavo:
 - `bitbank2/AnimatedGIF @ ^1.4.7`
 
 > [!TIP]
-> **Libreria Grafica Consigliata:** Sebbene il progetto utilizzi attualmente `TFT_eSPI` (e presenti un file `lv_conf.h` per esperimenti con LVGL), la libreria grafica più consigliata e performante per l'hardware specifico **ESP32-2432S028** è **LovyanGFX**. Nelle future iterazioni del firmware, il motore di rendering potrebbe essere migrato a LovyanGFX per sfruttarne appieno le potenzialità hardware.
+> **Libreria Grafica Consigliata:** Sebbene il progetto utilizzi attualmente `TFT_eSPI`, la libreria grafica più consigliata e performante per l'hardware specifico **ESP32-2432S028** è **LovyanGFX**. Nelle future iterazioni del firmware, il motore di rendering potrebbe essere migrato a LovyanGFX per sfruttarne appieno le potenzialità hardware.
 
 ### Comandi PlatformIO
 - **Compilazione firmware:**

@@ -14,6 +14,14 @@ void AquariumLogic::initMQTT() {
   }
 }
 
+bool AquariumLogic::isMqttConnected() const {
+  return mqttClient.connected();
+}
+
+int AquariumLogic::getMqttState() const {
+  return mqttClient.state();
+}
+
 void AquariumLogic::publishHomeAssistantDiscovery() {
   Serial.println("[MQTT] Publishing Home Assistant Discovery for Aquarium...");
   
@@ -73,6 +81,9 @@ void AquariumLogic::reconnectMQTT() {
 
   if (mServer.length() == 0 || mServer == "0.0.0.0") return;
   
+  // Update the server in case it was changed via Web UI without rebooting
+  mqttClient.setServer(mServer.c_str(), 1883);
+  
   if (!mqttClient.connected()) {
       Serial.print("[MQTT] Attempting connection to ");
       Serial.print(mServer);
@@ -115,14 +126,7 @@ void AquariumLogic::updateMQTT() {
               reconnectMQTT();
               if (!mqttClient.connected()) {
                   m_mqttConnectAttempts++;
-                  Serial.printf("[MQTT] Connection failed. Auto-retry %d/3\n", m_mqttConnectAttempts);
-                  if (m_mqttConnectAttempts >= 3) {
-                      Serial.println("[MQTT] Max retries reached. Auto-disabling MQTT.");
-                      xSemaphoreTake(g_configMutex, portMAX_DELAY);
-                      cfg.mqttEnabled = false;
-                      g_saveConfigNeeded = true;
-                      xSemaphoreGive(g_configMutex);
-                  }
+                  Serial.printf("[MQTT] Connection failed (rc=%d). Auto-retry %d/3\n", mqttClient.state(), m_mqttConnectAttempts);
               } else {
                   m_mqttConnectAttempts = 0;
               }

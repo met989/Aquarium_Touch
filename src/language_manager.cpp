@@ -5,8 +5,6 @@ LanguageManager langManager;
 
 LanguageManager::LanguageManager() {}
 
-
-
 void LanguageManager::init() {
   m_langCount = 0;
   scanAvailableLanguages();

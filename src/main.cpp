@@ -166,6 +166,22 @@ bool parseConfigLine(const String &rawLine) {
     cfg.formatHour = val.toInt();
   else if (key.equalsIgnoreCase("debug"))
     cfg.debug = (val.equalsIgnoreCase("true") || val == "1");
+  else if (key.equalsIgnoreCase("email_enabled"))
+    cfg.emailEnabled = (val == "1" || val.equalsIgnoreCase("true"));
+  else if (key.equalsIgnoreCase("smtp_host"))
+    cfg.smtpHost = stripQuotes(val);
+  else if (key.equalsIgnoreCase("smtp_port"))
+    cfg.smtpPort = val.toInt();
+  else if (key.equalsIgnoreCase("smtp_user"))
+    cfg.smtpUser = stripQuotes(val);
+  else if (key.equalsIgnoreCase("smtp_password"))
+    cfg.smtpPassword = stripQuotes(val);
+  else if (key.equalsIgnoreCase("smtp_ssl"))
+    cfg.smtpSsl = (val == "1" || val.equalsIgnoreCase("true"));
+  else if (key.equalsIgnoreCase("email_sender"))
+    cfg.emailSender = stripQuotes(val);
+  else if (key.equalsIgnoreCase("email_recipients"))
+    cfg.emailRecipients = stripQuotes(val);
   else if (key.equalsIgnoreCase("light_on_h"))
     aquarium.setScheduleOn(val.toInt(), aquarium.getConfig().lightOnMin);
   else if (key.equalsIgnoreCase("light_on_m"))
@@ -180,6 +196,12 @@ bool parseConfigLine(const String &rawLine) {
     aquarium.setTargetTemp(val.toFloat(), aquarium.getConfig().targetTempMax);
   else if (key.equalsIgnoreCase("target_max_t"))
     aquarium.setTargetTemp(aquarium.getConfig().targetTempMin, val.toFloat());
+  else if (key.equalsIgnoreCase("target_ph_min"))
+    aquarium.getConfig().targetPhMin = val.toFloat();
+  else if (key.equalsIgnoreCase("target_ph_max"))
+    aquarium.getConfig().targetPhMax = val.toFloat();
+  else if (key.equalsIgnoreCase("ph_offset"))
+    aquarium.setPhOffset(val.toFloat());
   else if (key.equalsIgnoreCase("temp_offset"))
     aquarium.setTempOffset(val.toFloat());
   else if (key.equalsIgnoreCase("relay_inv")) {
@@ -239,6 +261,15 @@ String buildConfigText() {
   out += "mqtt_password=\"" + cfg.mqttPassword + "\"\n";
   out += "format_hour=" + String(cfg.formatHour) + "\n";
   out += "debug=" + String(cfg.debug ? "true" : "false") + "\n";
+  
+  out += "email_enabled=" + String(cfg.emailEnabled ? "1" : "0") + "\n";
+  out += "smtp_host=\"" + cfg.smtpHost + "\"\n";
+  out += "smtp_port=" + String(cfg.smtpPort) + "\n";
+  out += "smtp_user=\"" + cfg.smtpUser + "\"\n";
+  out += "smtp_password=\"" + cfg.smtpPassword + "\"\n";
+  out += "smtp_ssl=" + String(cfg.smtpSsl ? "1" : "0") + "\n";
+  out += "email_sender=\"" + cfg.emailSender + "\"\n";
+  out += "email_recipients=\"" + cfg.emailRecipients + "\"\n";
 
   const AquariumConfig &aq = aquarium.getConfig();
   out += "light_on_h=" + String(aq.lightOnHour) + "\n";
@@ -248,7 +279,10 @@ String buildConfigText() {
   out += "auto_sched=" + String(aq.autoSchedule ? "1" : "0") + "\n";
   out += "target_min_t=" + String(aq.targetTempMin, 1) + "\n";
   out += "target_max_t=" + String(aq.targetTempMax, 1) + "\n";
-  out += "temp_offset=" + String(aq.tempOffset, 1) + "\n";
+  out += "target_ph_min=" + String(aq.targetPhMin, 1) + "\n";
+  out += "target_ph_max=" + String(aq.targetPhMax, 1) + "\n";
+  out += "ph_offset=" + String(aq.phOffset, 2) + "\n";
+  out += "temp_offset=" + String(aq.tempOffset, 2) + "\n";
   out += "relay_inv=" + String(aq.relayInverted ? "1" : "0") + "\n";
   out += "date_format=" + String(aq.dateFormat) + "\n";
   String cleanLang = String(aq.langFile);
@@ -343,8 +377,6 @@ bool loadConfigFromSD(bool &created, bool &updated) {
   g_loadingConfig = false;
   return true;
 }
-
-
 
 void applyScreenMode() {
   static const uint8_t rotTable[4] = {2, 1, 0, 3};

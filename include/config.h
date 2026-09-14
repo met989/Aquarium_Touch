@@ -1,6 +1,5 @@
 #ifndef APP_CONFIG_H
 #define APP_CONFIG_H
-
 #include <Arduino.h>
 
 // ==============================================================================
@@ -180,9 +179,20 @@ struct AppConfig {
   String mqttUser, mqttPassword;
   bool mqttEnabled;
   int formatHour;
+
   bool debug;
   int8_t mcpPinLight;
   int8_t mcpPinWaterLevel;
+  
+  // Email Settings
+  bool emailEnabled;
+  String smtpHost;
+  int smtpPort;
+  String smtpUser;
+  String smtpPassword;
+  bool smtpSsl;
+  String emailSender;
+  String emailRecipients;
 };
 
 extern AppConfig cfg;

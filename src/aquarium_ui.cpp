@@ -1,10 +1,5 @@
 #include "../include/aquarium_ui.h"
-
 #define GFX ((m_activeTab == TAB_SETTINGS) ? (TFT_eSPI*)m_tft : (TFT_eSPI*)m_sprite)
-
-
-#define GFX ((m_activeTab == TAB_SETTINGS) ? (TFT_eSPI*)m_tft : (TFT_eSPI*)m_sprite)
-
 #include "../include/aquarium_logic.h"
 #include "../include/language_manager.h"
 #include "ff.h"
@@ -347,6 +342,37 @@ void AquariumUI::drawNavBar(bool force) {
 // TAB 0: DASHBOARD (Rendered in Sprite relative coordinates)
 // ------------------------------------------------------------------------------
 void AquariumUI::drawDashboardTab() {
+  // WiFi Status Indicator (Top-Left)
+  uint16_t wifiColor = COLOR_CORAL_RED;
+  if (aquarium.isWifiConnected()) {
+    wifiColor = COLOR_EMERALD_GREEN;
+  } else if (aquarium.getWifiConnectState() == WIFI_CONN_CONNECTING || 
+             aquarium.getWifiConnectState() == WIFI_CONN_WAIT_SHORT) {
+    wifiColor = COLOR_GOLD_ACCENT;
+  }
+
+  GFX->fillCircle(12, 12, 4, wifiColor);
+  GFX->setTextDatum(ML_DATUM);
+  GFX->setTextColor(wifiColor, COLOR_OCEAN_DEPTH);
+  GFX->drawString("WIFI", 22, 12, 1);
+
+  // MQTT Status Indicator (Below WiFi)
+  if (cfg.mqttEnabled) {
+    uint16_t mqttColor = COLOR_GOLD_ACCENT;
+    if (aquarium.isMqttConnected()) {
+      mqttColor = COLOR_EMERALD_GREEN;
+    } else {
+      int state = aquarium.getMqttState();
+      // -1 (MQTT_DISCONNECTED) is idle/connecting. Other values are errors.
+      if (state == -1) mqttColor = COLOR_GOLD_ACCENT;
+      else mqttColor = COLOR_CORAL_RED;
+    }
+    GFX->fillCircle(12, 26, 4, mqttColor);
+    GFX->setTextDatum(ML_DATUM);
+    GFX->setTextColor(mqttColor, COLOR_OCEAN_DEPTH);
+    GFX->drawString("MQTT", 22, 26, 1);
+  }
+
   // Left: Circular Temperature Gauge (Center X: 90, Y: 86 inside sprite)
   drawCircularTempGauge(90, 86, 52, m_animatedTemp, aquarium.getConfig().targetTempMin, aquarium.getConfig().targetTempMax);
 
@@ -511,16 +537,17 @@ void AquariumUI::drawSettingsMenu() {
 
       if (m_settingsMenuPage == 1) {
           const char* items_page2[] = {
-            langManager.getText("MENU_HARDWARE", "9. Hardware & I2C"),
-            langManager.getText("MENU_SCREEN", "10. Screen"),
-            langManager.getText("MENU_LIGHT_TIMER", "11. Light Timer")
+            langManager.getText("MENU_FACTORY_RESET", "9. Factory Reset"),
+            langManager.getText("MENU_HARDWARE", "10. Hardware & I2C"),
+            langManager.getText("MENU_SCREEN", "11. Screen"),
+            langManager.getText("MENU_LIGHT_TIMER", "12. Light Timer")
           };
           int btnWidth = 145;
           int btnHeight = 40;
           int startY = 24;
           int gapY = 42;
           
-          for (int i = 0; i < 3; i++) {
+          for (int i = 0; i < 4; i++) {
               int col = i % 2;
               int row = i / 2;
               int x = 10 + col * 155;
@@ -538,12 +565,12 @@ void AquariumUI::drawSettingsMenu() {
       const char* items[] = {
         langManager.getText("MENU_DATETIME", "1. Date & Time"), 
         langManager.getText("MENU_TEMP_TARGET", "2. Target Temp"), 
-        langManager.getText("MENU_RELAY_STATE", "3. Relay State"), 
-        langManager.getText("MENU_WIFI_MGMT", "4. Wi-Fi"), 
-        langManager.getText("MENU_SYS_VERSION", "5. System Info"), 
-        langManager.getText("MENU_LANGUAGE", "6. Language"), 
-        langManager.getText("MENU_ENERGY_SAVING", "7. Energy Saving"), 
-        langManager.getText("MENU_FACTORY_RESET", "8. Factory Reset")
+        langManager.getText("MENU_PH_TARGET", "3. Target pH"), 
+        langManager.getText("MENU_RELAY_STATE", "4. Relay State"), 
+        langManager.getText("MENU_WIFI_MGMT", "5. Wi-Fi"), 
+        langManager.getText("MENU_SYS_VERSION", "6. System Info"), 
+        langManager.getText("MENU_LANGUAGE", "7. Language"), 
+        langManager.getText("MENU_ENERGY_SAVING", "8. Energy Saving")
     };
 
       int btnWidth = 145;
@@ -618,15 +645,16 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
     } else {
         // Altre subscreen
         if (sub == 2) drawSubScreenTempTarget();
-        if (sub == 3) drawSubScreenRelay();
-        if (sub == 4) drawSubScreenWifi();
-        if (sub == 5) drawSubScreenVersion();
-        if (sub == 6) drawSubScreenLanguage();
-        if (sub == 7) drawSubScreenEnergySaving();
-        if (sub == 8) drawSubScreenFactoryReset();
-        if (sub == 9) drawSubScreenHardware();
-        if (sub == 10) drawSubScreenScreen();
-        if (sub == 11) drawSubScreenLightTimer();
+        if (sub == 3) drawSubScreenPhTarget();
+        if (sub == 4) drawSubScreenRelay();
+        if (sub == 5) drawSubScreenWifi();
+        if (sub == 6) drawSubScreenVersion();
+        if (sub == 7) drawSubScreenLanguage();
+        if (sub == 8) drawSubScreenEnergySaving();
+        if (sub == 9) drawSubScreenFactoryReset();
+        if (sub == 10) drawSubScreenHardware();
+        if (sub == 11) drawSubScreenScreen();
+        if (sub == 12) drawSubScreenLightTimer();
     }
 }
 
@@ -673,6 +701,57 @@ void AquariumUI::drawSubScreenTempTarget() {
   drawTouchButton(174, 146, 40, 52, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
   drawTouchButton(218, 146, 40, 52, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
   drawTouchButton(262, 146, 40, 52, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
+}
+
+void AquariumUI::drawSubScreenPhTarget() {
+  drawTouchButton(6, 2, 84, 32, langManager.getText("BTN_BACK", "< HOME"), COLOR_CARD_BG, COLOR_GOLD_ACCENT, COLOR_CYAN_GLOW);
+  GFX->setTextDatum(TC_DATUM);
+  GFX->setTextColor(COLOR_EMERALD_GREEN, COLOR_BG_OCEAN);
+  GFX->drawString(langManager.getText("TITLE_PH_TARGET", "OPTIMAL pH SETTING"), 190, 10, 2);
+
+  const AquariumConfig& cfg = aquarium.getConfig();
+
+  // Card 1: MINIMA OTTIMALE
+  drawGlassCard(10, 36, 300, 60, COLOR_CYAN_GLOW);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+  GFX->drawString(langManager.getText("LABEL_PH_MIN", "MIN pH:"), 18, 44, 2);
+  char minStr[16];
+  snprintf(minStr, sizeof(minStr), "%.1f", cfg.targetPhMin);
+  GFX->setTextColor(COLOR_CYAN_GLOW, COLOR_CARD_BG);
+  GFX->drawString(minStr, 18, 62, 4);
+  drawTouchButton(130, 44, 40, 44, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 44, 40, 44, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 44, 40, 44, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 44, 40, 44, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
+
+  // Card 2: MASSIMA OTTIMALE
+  drawGlassCard(10, 102, 300, 60, COLOR_CORAL_RED);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+  GFX->drawString(langManager.getText("LABEL_PH_MAX", "MAX pH:"), 18, 110, 2);
+  char maxStr[16];
+  snprintf(maxStr, sizeof(maxStr), "%.1f", cfg.targetPhMax);
+  GFX->setTextColor(COLOR_CORAL_RED, COLOR_CARD_BG);
+  GFX->drawString(maxStr, 18, 128, 4);
+  drawTouchButton(130, 110, 40, 44, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 110, 40, 44, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 110, 40, 44, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 110, 40, 44, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
+
+  // Card 3: OFFSET CALIBRAZIONE
+  drawGlassCard(10, 168, 300, 60, COLOR_GOLD_ACCENT);
+  GFX->setTextDatum(TL_DATUM);
+  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_CARD_BG);
+  GFX->drawString(langManager.getText("LABEL_PH_OFFSET", "pH OFFSET:"), 18, 176, 2);
+  char offStr[16];
+  snprintf(offStr, sizeof(offStr), "%+.1f", cfg.phOffset);
+  GFX->setTextColor(COLOR_GOLD_ACCENT, COLOR_CARD_BG);
+  GFX->drawString(offStr, 18, 194, 4);
+  drawTouchButton(130, 176, 40, 44, "-1.0", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(174, 176, 40, 44, "-0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(218, 176, 40, 44, "+0.1", COLOR_CARD_BORDER, TFT_WHITE);
+  drawTouchButton(262, 176, 40, 44, "+1.0", COLOR_CARD_BORDER, TFT_WHITE);
 }
 
 void AquariumUI::drawSubScreenRelay() {
@@ -1318,7 +1397,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           int startY = 24;
           int gapY = 42;
           
-          for (int i = 0; i < 3; i++) {
+          for (int i = 0; i < 4; i++) {
               int col = i % 2;
               int row = i / 2;
               int x = 10 + col * 155;
@@ -1379,7 +1458,30 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           m_settingsNeedsRedraw = true;
         }
       } else if (m_settingsSubScreen == 3) {
-        // Sub 3: Stato Relè (Enlarged layout)
+        // Sub 3: Soglie Target pH (Min, Max, Offset)
+        if (sy >= 44 && sy <= 88) { // MIN
+          if (touchX >= 130 && touchX <= 170) aquarium.setTargetPh(cfg.targetPhMin - 1.0f, cfg.targetPhMax);
+          if (touchX >= 174 && touchX <= 214) aquarium.setTargetPh(cfg.targetPhMin - 0.1f, cfg.targetPhMax);
+          if (touchX >= 218 && touchX <= 258) aquarium.setTargetPh(cfg.targetPhMin + 0.1f, cfg.targetPhMax);
+          if (touchX >= 262 && touchX <= 302) aquarium.setTargetPh(cfg.targetPhMin + 1.0f, cfg.targetPhMax);
+          m_settingsNeedsRedraw = true;
+        }
+        else if (sy >= 110 && sy <= 154) { // MAX
+          if (touchX >= 130 && touchX <= 170) aquarium.setTargetPh(cfg.targetPhMin, cfg.targetPhMax - 1.0f);
+          if (touchX >= 174 && touchX <= 214) aquarium.setTargetPh(cfg.targetPhMin, cfg.targetPhMax - 0.1f);
+          if (touchX >= 218 && touchX <= 258) aquarium.setTargetPh(cfg.targetPhMin, cfg.targetPhMax + 0.1f);
+          if (touchX >= 262 && touchX <= 302) aquarium.setTargetPh(cfg.targetPhMin, cfg.targetPhMax + 1.0f);
+          m_settingsNeedsRedraw = true;
+        }
+        else if (sy >= 176 && sy <= 220) { // OFFSET
+          if (touchX >= 130 && touchX <= 170) aquarium.setPhOffset(cfg.phOffset - 1.0f);
+          if (touchX >= 174 && touchX <= 214) aquarium.setPhOffset(cfg.phOffset - 0.1f);
+          if (touchX >= 218 && touchX <= 258) aquarium.setPhOffset(cfg.phOffset + 0.1f);
+          if (touchX >= 262 && touchX <= 302) aquarium.setPhOffset(cfg.phOffset + 1.0f);
+          m_settingsNeedsRedraw = true;
+        }
+      } else if (m_settingsSubScreen == 4) {
+        // Sub 4: Stato Relè (Enlarged layout)
         // Button 1: Commuta Relè Adesso (X: 10..310, sy: 122..166)
         if (touchX >= 10 && touchX <= 310 && sy >= 122 && sy <= 166) {
           aquarium.toggleLight();
@@ -1390,7 +1492,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           aquarium.toggleRelayInverted();
           m_settingsNeedsRedraw = true;
         }
-      } else if (m_settingsSubScreen == 11) {
+      } else if (m_settingsSubScreen == 12) {
         // Sub 11: Light Timer Settings (ON and OFF times)
         // ON TIME Buttons (sy: 54..106)
         if (sy >= 54 && sy <= 106) {
