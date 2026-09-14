@@ -260,10 +260,19 @@ Le configurazioni del sistema seguono una rigorosa gerarchia:
 
 ## 🔄 Aggiornamento del Firmware (Update)
 
-Mantenere il tuo Aquarium OS Touch aggiornato è semplicissimo e non richiede competenze di programmazione.
+Mantenere il tuo Aquarium OS Touch aggiornato è semplicissimo e non richiede competenze di programmazione. Puoi eseguire l'aggiornamento in due modi:
 
-1. **Scarica l'Aggiornamento:** Vai nella sezione [Releases](https://github.com/met989/Aquarium_Touch/releases) di questo repository GitHub e scarica l'ultimo file `.bin` disponibile (es. `esp32_2432S028_v3_0.6.bin`).
-2. **Posiziona il File:** Inserisci il file appena scaricato all'interno della cartella `release/` del tuo progetto locale.
+### Metodo 1: Aggiornamento OTA (Over-The-Air) via Web
+Se il dispositivo è connesso al Wi-Fi, puoi aggiornarlo comodamente senza cavi direttamente dal tuo browser:
+1. **Scarica l'Aggiornamento:** Vai nella sezione [Releases](https://github.com/met989/Aquarium_Touch/releases) e scarica l'ultimo file `.bin` disponibile (es. `esp32_2432S028_v3_0.6.bin`).
+2. **Accedi alla Web UI:** Apri l'indirizzo IP del tuo acquario dal browser (es. `http://192.168.1.100`).
+3. **Avvia OTA:** Clicca sul pulsante dorato **"🔄 OTA Update"** (in alto).
+4. **Carica il Firmware:** Si aprirà la pagina sicura di ElegantOTA. Seleziona il file `.bin` appena scaricato e attendi il caricamento. Al termine, il dispositivo si riavvierà automaticamente con la nuova versione!
+
+### Metodo 2: Aggiornamento Offline via USB (Flasher)
+Se il Wi-Fi non è configurato o preferisci l'aggiornamento classico via cavo:
+1. **Scarica l'Aggiornamento:** Scarica l'ultimo file `.bin` dalle [Releases](https://github.com/met989/Aquarium_Touch/releases).
+2. **Posiziona il File:** Inseriscilo all'interno della cartella `release/` del tuo progetto locale.
 3. **Collega lo Schermo:** Collega il display ESP32 al computer tramite cavo USB.
 4. **Avvia l'Aggiornamento:** Fai doppio clic sul file **`flash.bat`** (Flasher Intelligente Offline). Lo script:
    - Rileverà automaticamente in modo nativo la porta USB (COM) a cui è collegato lo schermo (senza bisogno di driver aggiuntivi).
