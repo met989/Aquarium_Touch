@@ -183,9 +183,10 @@ LABEL_BRIGHTNESS=Brightness:
 BTN_AUTODIM_ON=Auto-Dimming: ON
 BTN_AUTODIM_OFF=Auto-Dimming: OFF
 
-MENU_HARDWARE=9. Hardware & I2C
 LABEL_ENABLE_STATIC_IP=Enable Static IP (if off uses DHCP)
 LABEL_ENABLE_MQTT=Enable MQTT Server
 MSG_MQTT_ERROR=MQTT Error: Connection failed. The switch has been disabled for safety.BTN_REBOOT=Reboot
+
+BTN_REBOOT=Reboot
 MSG_CONFIRM_REBOOT=Do you want to reboot the system?
 BTN_OTA_UPDATE=OTA Update
