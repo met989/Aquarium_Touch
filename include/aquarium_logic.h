@@ -10,7 +10,9 @@ enum WifiConnectState {
   WIFI_CONN_IDLE,
   WIFI_CONN_CONNECTING,
   WIFI_CONN_SUCCESS,
-  WIFI_CONN_FAILED
+  WIFI_CONN_FAILED,
+  WIFI_CONN_WAIT_SHORT,
+  WIFI_CONN_WAIT_LONG
 };
 
 enum TempStatus {
@@ -139,6 +141,7 @@ private:
   void readSensor();
   void evaluateSchedule();
   void applyLightHardware();
+  void startWifiConnection();
 
   AquariumConfig m_config;
   float m_currentTemp = 0.0f;
@@ -172,6 +175,7 @@ private:
   String m_wifiConnectSSID;
   uint32_t m_wifiConnectStartTime = 0;
   uint32_t m_wifiConnectResultTime = 0;
+  uint32_t m_wifiWaitStartTime = 0;
   uint8_t m_wifiAutoRetries = 0;
   uint8_t m_mqttConnectAttempts = 0;
 };

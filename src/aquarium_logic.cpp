@@ -84,10 +84,35 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   } else {
     WiFi.begin(ssid.c_str());
   }
-  m_wifiScanStatus = String(langManager.getText("MSG_CONNECTING ", "Connecting to ")) + ssid + "...";
+  m_wifiScanStatus = "Tentativo di connessione wifi... (" + String(m_wifiAutoRetries + 1) + "/3)";
   m_wifiConnectState = WIFI_CONN_CONNECTING;
   m_wifiConnectStartTime = millis();
   saveConfigSD();
+}
+
+void AquariumLogic::startWifiConnection() {
+  WiFi.disconnect(true);
+  delay(100);
+
+  if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {
+    IPAddress localIP, gateway, subnet, dns1, dns2;
+    localIP.fromString(cfg.wifiIpStatic);
+    gateway.fromString(cfg.wifiGateway);
+    subnet.fromString(cfg.wifiSubnet);
+    if (cfg.wifiDns1.length() > 0) dns1.fromString(cfg.wifiDns1);
+    if (cfg.wifiDns2.length() > 0) dns2.fromString(cfg.wifiDns2);
+    WiFi.config(localIP, gateway, subnet, dns1, dns2);
+  }
+
+  if (cfg.wifiPassword.length() > 0) {
+    WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
+  } else {
+    WiFi.begin(cfg.wifiSsid.c_str());
+  }
+  
+  m_wifiScanStatus = "Tentativo di connessione wifi... (" + String(m_wifiAutoRetries + 1) + "/3)";
+  m_wifiConnectState = WIFI_CONN_CONNECTING;
+  m_wifiConnectStartTime = millis();
 }
 
 void AquariumLogic::disconnectWifi() {
@@ -97,6 +122,12 @@ void AquariumLogic::disconnectWifi() {
 
 void AquariumLogic::startAsyncWifiScan() {
   if (m_wifiScanning) return;
+
+  if (m_wifiConnectState != WIFI_CONN_IDLE && m_wifiConnectState != WIFI_CONN_SUCCESS) {
+      WiFi.disconnect(true);
+      m_wifiConnectState = WIFI_CONN_IDLE;
+  }
+
   m_wifiScanStatus = langManager.getText("MSG_SCANNING_BG", "Scanning...");
   m_wifiScanning = true;
   
@@ -271,43 +302,38 @@ void AquariumLogic::update() {
     if (st == WL_CONNECTED) {
       m_wifiConnectState = WIFI_CONN_SUCCESS;
       m_wifiConnectResultTime = millis();
+      m_wifiScanStatus = "Connesso a " + cfg.wifiSsid;
     } else if (millis() - m_wifiConnectStartTime > 15000 || st == WL_CONNECT_FAILED || st == WL_NO_SSID_AVAIL) {
-      m_wifiConnectState = WIFI_CONN_FAILED;
-      m_wifiConnectResultTime = millis();
+      m_wifiAutoRetries++;
+      m_wifiScanStatus = "Connessione fallita (Tentativo " + String(m_wifiAutoRetries) + "/3)";
+      WiFi.disconnect(true);
+      
+      if (m_wifiAutoRetries >= 3) {
+        m_wifiConnectState = WIFI_CONN_WAIT_LONG;
+        m_wifiWaitStartTime = millis();
+        m_wifiScanStatus = "Connessione fallita. Riprovo tra 1 ora.";
+      } else {
+        m_wifiConnectState = WIFI_CONN_WAIT_SHORT;
+        m_wifiWaitStartTime = millis();
+      }
     }
-  } else if (m_wifiConnectState == WIFI_CONN_SUCCESS || m_wifiConnectState == WIFI_CONN_FAILED) {
+  } else if (m_wifiConnectState == WIFI_CONN_WAIT_SHORT) {
+    if (millis() - m_wifiWaitStartTime >= 30000) { // 30 sec
+      startWifiConnection();
+    }
+  } else if (m_wifiConnectState == WIFI_CONN_WAIT_LONG) {
+    if (millis() - m_wifiWaitStartTime >= 3600000) { // 1 hour
+      m_wifiAutoRetries = 0;
+      startWifiConnection();
+    }
+  } else if (m_wifiConnectState == WIFI_CONN_SUCCESS) {
     if (millis() - m_wifiConnectResultTime > 5000) {
       m_wifiConnectState = WIFI_CONN_IDLE;
     }
   } else if (m_wifiConnectState == WIFI_CONN_IDLE) {
     if (WiFi.status() != WL_CONNECTED && cfg.wifiSsid.length() > 0 && cfg.wifiSsid != "SSID_WIFI") {
-      if (m_wifiAutoRetries < 3) {
-        static uint32_t lastIdleRetry = 0;
-        if (millis() - lastIdleRetry > 15000) {
-          lastIdleRetry = millis();
-          m_wifiAutoRetries++;
-          Serial.printf("WiFi disconnected. Auto-retry %d/3...\n", m_wifiAutoRetries);
-          WiFi.disconnect(true);
-          
-          if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {
-            IPAddress localIP, gateway, subnet, dns1, dns2;
-            localIP.fromString(cfg.wifiIpStatic);
-            gateway.fromString(cfg.wifiGateway);
-            subnet.fromString(cfg.wifiSubnet);
-            if (cfg.wifiDns1.length() > 0) dns1.fromString(cfg.wifiDns1);
-            if (cfg.wifiDns2.length() > 0) dns2.fromString(cfg.wifiDns2);
-            WiFi.config(localIP, gateway, subnet, dns1, dns2);
-          }
-          
-          if (cfg.wifiPassword.length() > 0) WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
-          else WiFi.begin(cfg.wifiSsid.c_str());
-          m_wifiConnectState = WIFI_CONN_CONNECTING;
-          m_wifiConnectStartTime = millis();
-        }
-      } else {
-        // Anti-loop safety: smette di provare a connettersi dopo 3 tentativi falliti.
-        m_wifiScanStatus = "Wi-Fi in pausa (3 tentativi falliti)";
-      }
+      m_wifiAutoRetries = 0;
+      startWifiConnection();
     }
   }
 

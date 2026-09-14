@@ -59,6 +59,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Sfondo animato a tema marino con onde dinamiche, bolle fluttuanti e pesciolini traslanti.
   - Indicatore di temperatura con lancetta circolare animata.
   - Screensaver e modalità risparmio energetico a spegnimento retroilluminazione temporizzato.
+  - **Sensore di Illuminamento e Auto-Dimming:** Regolazione automatica della luminosità del display (TFT_BL) in base alla luce ambientale utilizzando il fotoresistore GT36516 integrato sulla scheda.
 - **Controllo Temperatura:**
   - Lettura continua da sensore DS18B20 su bus 1-Wire.
   - Soglie di temperatura ottimale configurabili (min/max predefiniti: 24.0°C – 27.0°C) con isteresi di 0.3°C e calibrazione tramite offset.
@@ -309,7 +310,6 @@ Il progetto è in continua evoluzione. Le prossime funzionalità e integrazioni 
 - **Sensore pH:** Monitoraggio in tempo reale dell'acidità dell'acqua.
 - **Sensore Livello Acqua:** Rilevamento del livello di evaporazione o livello critico con avvisi a schermo/web.
 - **Attivatore Mangiatoia Automatica:** Integrazione con la programmazione (Schedule) per erogazione cibo agli orari prestabiliti.
-- **Sensore di Illuminamento e Auto-Dimming:** Utilizzo del fotoresistore GT36516 integrato sulla scheda (GPIO 34) per regolare automaticamente la luminosità del display (TFT_BL) in base alla luce ambientale, o integrazione di un sensore Lux esterno per misurazioni precise sulla plafoniera.
 - **Gravity: Analog TDS Sensor Meter (Arduino):** Misurazione dei Solidi Totali Disciolti (TDS) in *ppm* (parti per milione), perfetto per monitorare in modo granulare la concentrazione di fertilizzanti in colonna d'acqua e la purezza generale.
 
 ---
