@@ -79,7 +79,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Dashboard Web responsive per controllare luci, orari, temperature min/max e configurazioni.
   - API HTTP in formato JSON per l'integrazione con Home Assistant, Node-RED o script esterni.
   - Gestione remota del file di configurazione grezzo (`config.cfg`).
-- **Sistema Multilingua (i18n):**
+- **Sistema Multilingua:**
   - Caricamento dinamico dei file lingua `.lng` da scheda SD (`/languages/`) o dalla memoria Flash interna.
   - Generazione automatica dello header `embedded_languages.h` in fase di build tramite script Python/SCons (`embed_languages.py`).
   - Lingue incluse: Italiano (`italian.lng`), Inglese (`english.lng`).
@@ -147,12 +147,16 @@ L'interfaccia utente (UI) è sviluppata su libreria `TFT_eSPI` sfruttando un buf
 2. **Luce:** Consente di accendere/spegnere manualmente il relè delle luci, attivare o disattivare la programmazione automatica a orario e invertire la polarità del relè (Active HIGH / LOW).
 3. **Programmazione (Schedule):** Impostazione degli orari di accensione (ON) e spegnimento (OFF) dell'illuminazione acquario.
 4. **Impostazioni (Settings):** Menu multi-pagina (4 voci per pagina) per configurare:
-   - Target e Offset Temperatura
-   - Impostazioni Relè
-   - Connessione e Scansione Wi-Fi (con tastiera touch integrata)
-   - Lingua di sistema
-   - Risparmio Energetico (Screensaver / Timeout spegnimento schermo)
-   - Informazioni di versione e Reset di fabbrica
+   - **1. Data & Ora:** Configurazione data, ora e sincronizzazione NTP.
+   - **2. Temp. Target:** Target min/max e offset di calibrazione.
+   - **3. Stato Luce:** Impostazioni polarità relè (Active HIGH/LOW).
+   - **4. Wi-Fi:** Connessione, scansione (tastiera integrata) e gestione rete.
+   - **5. Info di sistema:** Versione firmware, memoria e framework.
+   - **6. Lingua:** Selezione lingua di sistema (es. Italiano, Inglese).
+   - **7. Risparmio energia:** Impostazioni Screensaver e spegnimento retroilluminazione.
+   - **8. Ripristino Fabbrica:** Reset di tutti i parametri utente.
+   - **9. I2C:** Strumento di scansione hardware del bus I2C.
+   - **10. Schermo:** Controllo luminosità manuale o Auto-Dimming (sensore LDR).
 
 ---
 
@@ -188,7 +192,7 @@ Il sistema supporta la riproduzione di un'animazione personalizzata in formato G
 
 ### Specifiche Raccomandate per la GIF:
 - **Risoluzione massima:** `320x240` pixel (se più piccola verrà centrata su sfondo nero).
-- **Dimensione file:** Mantenere preferibilmente sotto i **2-3 MB** per garantire la riproduzione fluida in streaming da scheda SD.
+- **Dimensione file:** Mantenere preferibilmente sotto i **1 MB** per garantire la riproduzione fluida in streaming da scheda SD.
 - **Framerate consigliato:** **10–15 FPS**.
 - **Trasparenza:** Supportata.
 
@@ -218,18 +222,28 @@ Aquarium_Touch/
 │   ├── aquarium_server.h       # Definizione Web Server HTTP & API REST
 │   ├── language_manager.h      # Gestore del dizionario di localizzazione i18n
 │   ├── embedded_languages.h    # Header autogenerato con lingue integrate nella Flash
-│   └── lv_conf.h               # Configurazione LVGL (eredità di progetto, si consiglia LovyanGFX per questa scheda)
+│   ├── embedded_web.h          # Header autogenerato con il file web compresso in GZIP
+│   └── lv_conf.h               # Configurazione LVGL (eredità di progetto)
 ├── src/
 │   ├── main.cpp                # Setup, Loop principale, gestione Boot GIF e calibrazione Touch
 │   ├── aquarium_logic.cpp      # Logica di business, schedulazione, sensore DS18B20, gestione SD
 │   ├── aquarium_ui.cpp         # Implementazione grafica TFT, menu, tastiera touch, animazioni
 │   ├── aquarium_server.cpp     # Implementazione Server Web ed endpoint API JSON
-│   └── language_manager.cpp   # Implementazione caricamento e parsing dei file .lng
+│   ├── aquarium_mqtt.cpp       # Implementazione client MQTT per integrazione Home Assistant
+│   └── language_manager.cpp    # Implementazione caricamento e parsing dei file .lng
 ├── languages/
 │   ├── italian.lng             # File di localizzazione in lingua Italiana
 │   └── english.lng             # File di localizzazione in lingua Inglese
+├── scripts/
+│   ├── embed_languages.py      # Script SCons pre-build per compilazione automatica lingue
+│   ├── extract_html.py         # Script SCons pre-build per minificazione HTML e GZIP
+│   └── copy_release.py         # Script post-build per spostare il firmware nella cartella release
+├── web/
+│   └── index.html              # Interfaccia web (Dashboard HTML/CSS/JS)
 ├── boot.gif                    # Esempio di animazione di boot per scheda SD
-├── embed_languages.py          # Script SCons pre-build per compilazione automatica lingue
+├── build.bat                   # Script per avviare la compilazione offline locale
+├── flash.bat                   # Flasher intelligente offline per caricare il firmware compilato
+├── publish_release.bat         # Tool automatico per creare una release tramite GitHub Actions
 └── platformio.ini              # Configurazione ambiente PlatformIO e dipendenze
 ```
 
