@@ -314,16 +314,6 @@ Se il Wi-Fi non è configurato o preferisci l'aggiornamento classico via cavo:
   pio run --target monitor
   ```
 
-### ⚡ Automazioni e Script Forniti
-Per semplificare la gestione e la distribuzione del firmware, il progetto include due comodi script pronti all'uso:
-
-- **`publish_release.bat` (Pubblicazione Automatica su GitHub):**
-  Un tool che automatizza il rilascio delle nuove versioni sfruttando GitHub Actions.
-  *Come usarlo:*
-  1. Aggiorna il numero di versione nel file **`version.json`** presente nella root del progetto (es. `0.6.1`).
-  2. Salva il progetto e invia le modifiche a GitHub usando `push.bat`.
-  3. Avvia `publish_release.bat`. Lo script creerà un tag invisibile e dirà a GitHub di avviare i suoi server, i quali compileranno il codice, pubblicheranno la Release ufficiale e scriveranno da soli il Changelog basandosi sulle tue ultime modifiche!
-
 ---
 
 ## 🔮 Sviluppi Futuri (Roadmap)
