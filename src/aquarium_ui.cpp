@@ -553,9 +553,15 @@ void AquariumUI::drawSettingsMenu() {
               int x = 10 + col * 155;
               int y = startY + row * gapY;
               
-              GFX->fillRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
-              GFX->drawRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CYAN_GLOW);
-              GFX->setTextColor(TFT_WHITE);
+              if (i == 1) { // 10. Hardware & I2C (Disattivato temporaneamente)
+                  GFX->fillRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
+                  GFX->drawRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_TEXT_MUTED);
+                  GFX->setTextColor(COLOR_TEXT_MUTED);
+              } else {
+                  GFX->fillRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CARD_BORDER);
+                  GFX->drawRoundRect(x, y, btnWidth, btnHeight, 8, COLOR_CYAN_GLOW);
+                  GFX->setTextColor(TFT_WHITE);
+              }
               GFX->setTextDatum(MC_DATUM);
               GFX->drawString(items_page2[i], x + btnWidth/2, y + btnHeight/2, 2);
           }
@@ -1403,6 +1409,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
               int x = 10 + col * 155;
               int y = startY + row * gapY;
               if (touchX >= x && touchX <= x + btnWidth && sy >= y && sy <= y + btnHeight) {
+                  if (i == 1) return; // Ignore touch for Hardware & I2C for now
                   m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10, i=2 -> 11
                   m_settingsNeedsRedraw = true;
                   m_lastTouchTime = millis() + 500; // Anti-ghost touch
