@@ -29,6 +29,7 @@ private:
   void handleApiSetNetworkSettings();
   void handleApiSetMqttSettings();
   void handleApiSetSystemSettings();
+  void handleApiSetScreenSettings();
   void handleApiSetScreensaver();
   void handleApiSetLanguage();
   void handleApiSetHardwareSettings();

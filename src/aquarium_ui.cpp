@@ -140,7 +140,7 @@ void AquariumUI::update() {
   // LDR screen live redraw without flickering
   static uint32_t lastLdrRedraw = 0;
   static int lastLdrValue = -1;
-  if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 10) {
+  if (m_activeTab == TAB_SETTINGS && m_settingsSubScreen == 11) {
     if (millis() - lastLdrRedraw >= 500) {
       lastLdrRedraw = millis();
       int currentLdr = aquarium.getLdrValue();
@@ -1516,8 +1516,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           aquarium.setScheduleOff(h, m);
           m_settingsNeedsRedraw = true;
         }
-      } else if (m_settingsSubScreen == 4) {
-        // Sub 4: Wi-Fi Setup
+      } else if (m_settingsSubScreen == 5) {
+        // Sub 5: Wi-Fi Setup
 
         if (aquarium.getWifiConnectState() != WIFI_CONN_IDLE) {
            if (aquarium.getWifiConnectState() != WIFI_CONN_CONNECTING) {
@@ -1634,16 +1634,16 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             }
           }
         }
-      } else if (m_settingsSubScreen == 5) {
+      } else if (m_settingsSubScreen == 6) {
         if (m_isUpdating) return; // Block touches during update
-        // Sub 5: System Info (Update Version)
+        // Sub 6: System Info (Update Version)
         if (m_showUpdatePrompt) {
           // YES (X: 30..140, Y: 140..180)
           if (touchX >= 30 && touchX <= 140 && sy >= 140 && sy <= 180) {
             m_showUpdatePrompt = false;
             m_isUpdating = true;
             m_settingsNeedsRedraw = true;
-            drawSettingsSubScreen(5); // Force draw update loading immediately
+            drawSettingsSubScreen(6); // Force draw update loading immediately
             aquarium.performOTAUpdate(m_latestVersionUrl);
             m_isUpdating = false;
           }
@@ -1661,7 +1661,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             } else {
               m_isCheckingUpdate = true;
               m_settingsNeedsRedraw = true;
-              drawSettingsSubScreen(5); // Draw "Controllo in corso..."
+              drawSettingsSubScreen(6); // Draw "Controllo in corso..."
               
               String ver, url;
               if (aquarium.checkGitHubForUpdate(ver, url)) {
@@ -1672,8 +1672,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             }
           }
         }
-      } else if (m_settingsSubScreen == 6) {
-        // Sub 6: Language Selector (Updated for Y: 40 + i * 44)
+      } else if (m_settingsSubScreen == 7) {
+        // Sub 7: Language Selector (Updated for Y: 40 + i * 44)
         if (sy >= 40) {
           int idx = (sy - 40) / 44;
           if (idx >= 0 && idx < langManager.getAvailableLanguageCount()) {
@@ -1685,8 +1685,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             ESP.restart();
           }
         }
-      } else if (m_settingsSubScreen == 7) {
-        // Sub 7: Energy Saving (Updated for Y: 110..154 and larger buttons)
+      } else if (m_settingsSubScreen == 8) {
+        // Sub 8: Energy Saving (Updated for Y: 110..154 and larger buttons)
         static const uint16_t SS_TIMES[] = { 0, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 900, 1200, 1800, 2700, 3600 };
         static const int      SS_COUNT   = sizeof(SS_TIMES) / sizeof(SS_TIMES[0]);
         if (sy >= 110 && sy <= 154) {
@@ -1703,8 +1703,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             m_settingsNeedsRedraw = true;
           }
         }
-      } else if (m_settingsSubScreen == 8) {
-        // Sub 8: Factory Reset (Updated for enlarged Y: 128..178)
+      } else if (m_settingsSubScreen == 9) {
+        // Sub 9: Factory Reset (Updated for enlarged Y: 128..178)
         if (sy >= 128 && sy <= 178) {
           // YES button (X: 30..140)
           if (touchX >= 30 && touchX <= 140) {
@@ -1734,8 +1734,8 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
             m_settingsNeedsRedraw = true;
           }
         }
-      } else if (m_settingsSubScreen == 9) {
-        // Sub 9: Hardware Mapping
+      } else if (m_settingsSubScreen == 10) {
+        // Sub 10: Hardware Mapping
         if (touchX >= 160 && touchX <= 200) { // Minus
           if (sy >= 46 && sy <= 78) ::cfg.mcpPinLight = max(-1, (int)::cfg.mcpPinLight - 1);
           if (sy >= 86 && sy <= 118) ::cfg.mcpPinWaterLevel = max(-1, (int)::cfg.mcpPinWaterLevel - 1);
@@ -1751,10 +1751,15 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
         }
         // Scan Button: (10, 204, 100, 32)
         if (touchX >= 10 && touchX <= 110 && sy >= 204 && sy <= 236) {
-          m_settingsNeedsRedraw = true; // Triggers redraw which calls scanI2C()
+          GFX->fillRoundRect(120, 204, 190, 32, 4, COLOR_CARD_BG);
+          GFX->setTextColor(COLOR_GOLD_ACCENT);
+          GFX->setTextDatum(ML_DATUM);
+          GFX->drawString("Scansione in corso...", 125, 220, 2);
+          m_lastI2cScanResult = aquarium.scanI2C();
+          m_settingsNeedsRedraw = true;
         }
-      } else if (m_settingsSubScreen == 10) {
-        // Sub 10: Schermo & Auto-Dimming
+      } else if (m_settingsSubScreen == 11) {
+        // Sub 11: Schermo & Auto-Dimming
         // Toggle Button (X: 10..310, Y: 140..190)
         if (touchX >= 10 && touchX <= 310 && sy >= 140 && sy <= 190) {
           aquarium.setAutoDimming(!cfg.autoDimming);
@@ -1811,7 +1816,7 @@ void AquariumUI::drawSubScreenHardware() {
   GFX->fillRoundRect(120, 204, 190, 32, 4, COLOR_CARD_BG);
   GFX->setTextColor(COLOR_EMERALD_GREEN);
   GFX->setTextDatum(ML_DATUM);
-  String i2cRes = aquarium.scanI2C();
+  String i2cRes = m_lastI2cScanResult;
   if (i2cRes.length() > 22) {
      i2cRes = i2cRes.substring(0, 20) + "..";
   }

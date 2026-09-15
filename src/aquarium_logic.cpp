@@ -152,8 +152,8 @@ void AquariumLogic::init() {
   WiFi.setAutoReconnect(false);
 
   // Configurazione Pin Diretti
-  pinMode(LIGHT_RELAY_PIN, OUTPUT);
   digitalWrite(LIGHT_RELAY_PIN, m_config.relayInverted ? HIGH : LOW);
+  pinMode(LIGHT_RELAY_PIN, OUTPUT);
   m_lightOn = false;
   
   // Init I2C & MCP23017
@@ -641,26 +641,20 @@ void AquariumLogic::getTime(int& h, int& m, int& s) const {
 }
 
 void AquariumLogic::getDate(int& day, int& month, int& year) const {
-  // Simplified date tracking based on last sync
+  static int last_day = 30, last_month = 7, last_year = 2026;
   struct tm timeinfo;
+  
   if (getLocalTime(&timeinfo, 0)) {
-    day = timeinfo.tm_mday;
-    month = timeinfo.tm_mon + 1;
-    year = timeinfo.tm_year + 1900;
-  } else {
-    uint32_t daysElapsed = m_uptimeSeconds / 86400;
-    day = 30 + (int)daysElapsed;
-    month = 7;
-    year = 2026;
-    while (day > 31) {
-      day -= 31;
-      month++;
-      if (month > 12) {
-        month = 1;
-        year++;
-      }
-    }
+    // Aggiorna la cache solo se riusciamo a leggere senza bloccare l'UI
+    last_day = timeinfo.tm_mday;
+    last_month = timeinfo.tm_mon + 1;
+    last_year = timeinfo.tm_year + 1900;
   }
+  
+  // Restituisce l'ultima data valida letta (evita lo sfarfallio se il mutex NTP è occupato)
+  day = last_day;
+  month = last_month;
+  year = last_year;
 }
 
 

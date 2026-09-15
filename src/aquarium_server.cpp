@@ -68,6 +68,7 @@ void AquariumServer::setupRoutes() {
   m_server.on("/api/settings/network",     HTTP_POST, [this]() { handleApiSetNetworkSettings(); });
   m_server.on("/api/settings/mqtt",        HTTP_POST, [this]() { handleApiSetMqttSettings(); });
   m_server.on("/api/settings/system",      HTTP_POST, [this]() { handleApiSetSystemSettings(); });
+  m_server.on("/api/settings/screen",      HTTP_POST, [this]() { handleApiSetScreenSettings(); });
   m_server.on("/api/settings/screensaver", HTTP_POST, [this]() { handleApiSetScreensaver(); });
   m_server.on("/api/settings/language",    HTTP_POST, [this]() { handleApiSetLanguage(); });
   m_server.on("/api/settings/hardware",    HTTP_POST, [this]() { handleApiSetHardwareSettings(); });
@@ -183,6 +184,7 @@ void AquariumServer::handleApiStatus() {
   json += "\"mqtt_port\":";        json += String(cfg.mqttPort); json += ",";
   json += "\"mqtt_user\":\"";      json += jStr(cfg.mqttUser);     json += "\",";
   json += "\"debug\":";            json += String(cfg.debug ? "true" : "false"); json += ",";
+  json += "\"auto_dimming\":";     json += String(aq.autoDimming ? "true" : "false"); json += ",";
   json += "\"screen_mode\":";      json += String(cfg.screenMode); json += ",";
   json += "\"lang_file\":\"";      json += jStr(langManager.getActiveLanguageFile()); json += "\",";
   json += "\"lang_name\":\"";      json += jStr(langManager.getActiveLanguageName()); json += "\",";
@@ -191,6 +193,7 @@ void AquariumServer::handleApiStatus() {
   json += "\"ip\":\"";             json += WiFi.localIP().toString(); json += "\",";
   json += "\"version\":\"";        json += jStr(String(AQUARIUM_OS_VERSION)); json += "\",";
   json += "\"mqtt_enabled\":";     json += String(cfg.mqttEnabled ? "true" : "false"); json += ",";
+  json += "\"mqtt_connected\":";   json += String(aquarium.isMqttConnected() ? "true" : "false"); json += ",";
   json += "\"mqtt_error\":";       json += String(aquarium.getMqttConnectAttempts() >= 3 ? "true" : "false");
   json += "}";
 
@@ -321,6 +324,17 @@ void AquariumServer::handleApiSetSystemSettings() {
   m_server.send(200, "application/json", "{\"status\":\"rebooting\"}");
   delay(300);
   ESP.restart();
+}
+
+void AquariumServer::handleApiSetScreenSettings() {
+  if (m_server.hasArg("auto_dimming")) {
+    bool dim = (m_server.arg("auto_dimming") == "true" || m_server.arg("auto_dimming") == "1");
+    aquarium.setAutoDimming(dim);
+    g_saveConfigNeeded = true;
+    m_server.send(200, "application/json", "{\"status\":\"ok\"}");
+  } else {
+    m_server.send(400, "application/json", "{\"error\":\"missing args\"}");
+  }
 }
 
 void AquariumServer::handleApiSetScreensaver() {

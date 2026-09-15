@@ -100,10 +100,10 @@ LABEL_WIFI_SSID=SSID Wi-Fi Configurato
 LABEL_WIFI_PASS=Password Wi-Fi
 BTN_SAVE_WIFI=Salva & Connetti Wi-Fi
 LABEL_SELECT_LANG=Seleziona Lingua Interfaccia
-BTN_APPLY_LANG=Cambia Lingua (Riavvia ESP32)
+BTN_APPLY_LANG=Cambia Lingua e riavvia
 TITLE_RAW_CFG=Editor File di Configurazione SD (/config.cfg)
 BTN_RELOAD_SD=Ricarica da SD
-BTN_SAVE_SD=Salva Modifiche Dirette su SD
+BTN_SAVE_SD=Salva Modifiche su SD
 MSG_TOAST_SAVED=Impostazioni Salvate con Successo!
 
 # Energy Saving Screen

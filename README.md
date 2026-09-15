@@ -59,13 +59,14 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Sfondo animato a tema marino con onde dinamiche, bolle fluttuanti e pesciolini traslanti.
   - Indicatore di temperatura con lancetta circolare animata.
   - Screensaver e modalità risparmio energetico a spegnimento retroilluminazione temporizzato.
-  - **Sensore di Illuminamento e Auto-Dimming:** Regolazione automatica della luminosità del display (TFT_BL) in base alla luce ambientale utilizzando il fotoresistore GT36516 integrato sulla scheda.
+  - **Sensore di Illuminamento e Auto-Dimming:** Regolazione automatica della luminosità del display (TFT_BL) in base alla luce ambientale utilizzando il fotoresistore GT36516 integrato sulla scheda. Gestibile sia dal display touch che dall'interfaccia web, con lettura in tempo reale del valore (mV).
 - **Controllo Temperatura:**
   - Lettura continua da sensore DS18B20 su bus 1-Wire.
   - Soglie di temperatura ottimale configurabili (min/max predefiniti: 24.0°C – 27.0°C) con isteresi di 0.3°C e calibrazione tramite offset.
   - Segnalazione visiva degli stati: *Ottimale* (Verde Smeraldo), *Troppo Freddo* (Blu), *Troppo Caldo* (Rosso Corallo).
 - **Gestione Illuminazione & Automatizzazione:**
   - Controllo output relè per la lampada o apparecchiatura dell'acquario (PIN 27).
+  - Inizializzazione hardware sicura (Anti-Glitch) per evitare accensioni involontarie del relè all'avvio o al riavvio della scheda.
   - Logica relè configurabile: *Attivo HIGH* o *Attivo LOW* (Relè invertito).
   - Modalità automatica a orario (es. Accensione ore 10:00, Spegnimento ore 18:00).
   - Override manuale rapido da touch screen o da interfaccia web.
@@ -157,8 +158,8 @@ L'interfaccia utente (UI) è sviluppata su libreria `TFT_eSPI` sfruttando un buf
    - **7. Lingua:** Selezione lingua di sistema (es. Italiano, Inglese).
    - **8. Risparmio energia:** Impostazioni Screensaver e spegnimento retroilluminazione.
    - **9. Ripristino Fabbrica:** Reset di tutti i parametri utente.
-   - **10. Hardware & I2C:** Strumento di scansione hardware del bus I2C.
-   - **11. Schermo:** Controllo luminosità manuale o Auto-Dimming (sensore LDR).
+   - **10. Hardware & I2C:** Strumento di scansione hardware del bus I2C (attivazione manuale on-demand per non bloccare l'interfaccia).
+   - **11. Schermo:** Controllo luminosità manuale o Auto-Dimming (con lettura in tempo reale del sensore LDR).
    - **12. Timer Luce:** Accesso rapido alle impostazioni del programmatore orario.
 
 ---
@@ -177,6 +178,7 @@ Quando l'ESP32 è connesso alla rete Wi-Fi, il Web Server integrato risponde sul
 - `POST /api/relay/invert` : Inverte la logica del relè.
 - `POST /api/wifi/settings` : Imposta credenziali Wi-Fi o configurazione IP.
 - `POST /api/mqtt/settings` : Configura il broker MQTT.
+- `POST /api/settings/screen` : Configura l'Auto-Dimming e le impostazioni dello schermo.
 - `POST /api/screensaver` : Imposta il tempo del salvaschermo.
 - `POST /api/language` : Cambia la lingua attiva del sistema.
 - `GET /api/config/raw` : Scarica il file `config.cfg` grezzo.

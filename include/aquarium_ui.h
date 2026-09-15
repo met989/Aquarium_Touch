@@ -110,6 +110,7 @@ private:
   String m_latestVersion = "";
   bool m_hasCheckedUpdate = false;
   bool m_isCheckingUpdate = false;
+  String m_lastI2cScanResult = "PREMI SCAN...";
   bool m_bootCheckStarted = false;
   bool m_isUpdating = false;
   int m_screensaverIdx = 0; // index into screensaver time table

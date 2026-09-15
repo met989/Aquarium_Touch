@@ -20,9 +20,13 @@ AppConfig cfg;
 uint16_t physW = 320, physH = 240;
 unsigned long lastTouchLog = 0;
 
+RTC_DATA_ATTR int rtc_bootCount = 0;
+bool g_safeModeActive = false;
+
 void backlightOn() {
   aquarium.updateBacklight();
 }
+
 
 void backlightOff() {
   ledcWrite(0, 0); // Spenge fisicamente il ledc
@@ -788,12 +792,53 @@ void setup() {
   pinMode(LED_BLUE_PIN, OUTPUT);
   // Accende il LED Blu (Stato: Caricamento all'avvio)
   setSystemLedState(false, false, true);
-  
-  pinMode(SD_CS, OUTPUT);
-  digitalWrite(SD_CS, HIGH);
+
+  esp_reset_reason_t reason = esp_reset_reason();
+  if (reason == ESP_RST_POWERON || reason == ESP_RST_BROWNOUT || reason == ESP_RST_EXT) {
+    rtc_bootCount = 0;
+  } else if (reason == ESP_RST_PANIC || reason == ESP_RST_INT_WDT || reason == ESP_RST_TASK_WDT || reason == ESP_RST_WDT || reason == ESP_RST_SW) {
+    rtc_bootCount++;
+    Serial.printf("[SAFE MODE] Crash count: %d\n", rtc_bootCount);
+  }
 
   backlightOn();
   tft.begin();
+  
+  if (rtc_bootCount >= 3) {
+    g_safeModeActive = true;
+    setSystemLedState(true, false, false); // Rosso
+    tft.setRotation(1);
+    tft.fillScreen(TFT_RED);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("SAFE MODE ACTIVATED", physW/2, 40, 4);
+    tft.drawString("Too many crashes detected.", physW/2, 80, 2);
+    
+    // Fallback if SD fails, we still try Wi-Fi with static values or last memory
+    initSD();
+    bool c, u;
+    loadConfigFromSD(c, u);
+    
+    tft.drawString("Connecting to Wi-Fi...", physW/2, 120, 2);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
+    int retries = 0;
+    while (WiFi.status() != WL_CONNECTED && retries < 30) {
+      delay(500);
+      retries++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+      String msg = "OTA Server IP: " + WiFi.localIP().toString();
+      tft.drawString(msg, physW/2, 160, 2);
+      aquariumServer.init();
+      tft.drawString("Upload firmware via OTA!", physW/2, 200, 2);
+    } else {
+      tft.drawString("Wi-Fi Failed. Use USB.", physW/2, 160, 2);
+    }
+    return; // Exit setup immediately
+  }
+
   setDefaults();
   applyScreenMode();
   if (!initSD()) {
@@ -807,6 +852,10 @@ void setup() {
   bool created = false, updated = false;
   loadConfigFromSD(created, updated);
   applyScreenMode();
+
+  // Fix: Inizializza subito il relè per evitare scatti durante l'animazione di boot
+  digitalWrite(LIGHT_RELAY_PIN, aquarium.isRelayInverted() ? HIGH : LOW);
+  pinMode(LIGHT_RELAY_PIN, OUTPUT);
 
   gif.begin(LITTLE_ENDIAN_PIXELS);
   if (gif.open("/boot.gif", GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
@@ -875,6 +924,17 @@ void setup() {
 }
 
 void loop() {
+  if (g_safeModeActive) {
+    aquariumServer.update();
+    delay(10);
+    return;
+  }
+  
+  if (rtc_bootCount > 0 && millis() > 15000) {
+    rtc_bootCount = 0; // Se siamo sopravvissuti 15 secondi, non è un bootloop
+    Serial.println("[SAFE MODE] System stable for 15s. Boot count reset.");
+  }
+
   // --- Screensaver Wake Logic ---
   if (touch.touched()) {
     if (g_screenIsOff) {
