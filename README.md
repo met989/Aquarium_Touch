@@ -35,6 +35,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 <img src="scheme/3.jpg?v=v0.6" alt="Programmazione" />
 <img src="scheme/4.jpg?v=v0.6" alt="Impostazioni" />
 <img src="scheme/5.jpg?v=v0.6" alt="Impostazioni2" />
+<img src="scheme/6.jpg?v=v0.6" alt="Foto1" />
 
 <br><br>
 
@@ -45,7 +46,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 <br><br>
 
 **Video Dimostrativo:**<br>
-<img src="scheme/video.gif?v=v0.6" alt="Video Demo" />
+<img src="scheme/video1.gif?v=v0.6" alt="Video Demo" />
 
 </div>
 
