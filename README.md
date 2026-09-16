@@ -96,7 +96,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 
 Il progetto è ottimizzato per l'utilizzo della scheda **ESP32-2432S028 (2.8" All-in-One)** ([acquistabile qui su AliExpress](https://it.aliexpress.com/item/1005005262421075.html)). 
 
-<img src="scheme/esp32_2432s028_pcb-3.png?v=v0.6" alt="board" />
+<img src="scheme/scheme1.png?v=v0.6" alt="board" />
 
 > [!NOTE]
 > La [pagina di macsbug (ESP32-2432S028)](https://macsbug.wordpress.com/2022/08/17/esp32-2432s028/) illustra nel dettaglio tutto l'hardware. Esistono 3 varianti fisiche di questa scheda: **l'ultima versione** (la più aggiornata e consigliata) è riconoscibile dalla presenza simultanea di entrambe le porte **USB-C e Micro USB**.
