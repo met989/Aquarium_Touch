@@ -30,12 +30,12 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
 <div align="center">
 
 **Display Touch:**<br>
-<img src="scheme/1.jpg?v=v0.6" alt="Dashboard" />
-<img src="scheme/2.jpg?v=v0.6" alt="Luce" />
-<img src="scheme/3.jpg?v=v0.6" alt="Programmazione" />
-<img src="scheme/4.jpg?v=v0.6" alt="Impostazioni" />
-<img src="scheme/5.jpg?v=v0.6" alt="Impostazioni2" />
-<img src="scheme/6.jpg?v=v0.6" alt="Foto1" />
+<img src="scheme/1.jpg?v=v0.6" alt="Dashboard" width="400"/>
+<img src="scheme/2.jpg?v=v0.6" alt="Luce" width="400"/>
+<img src="scheme/3.jpg?v=v0.6" alt="Programmazione" width="400"/>
+<img src="scheme/4.jpg?v=v0.6" alt="Impostazioni" width="400"/>
+<img src="scheme/5.jpg?v=v0.6" alt="Impostazioni2" width="400"/>
+<img src="scheme/6.jpg?v=v0.6" alt="Foto1" width="400"/>
 
 <br><br>
 
