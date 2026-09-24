@@ -821,6 +821,11 @@ void setup() {
     
     tft.drawString("Connecting to Wi-Fi...", physW/2, 120, 2);
     WiFi.mode(WIFI_STA);
+    WiFi.setHostname("aquarium-touch");
+    #if defined(ESP_IDF_VERSION) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+    #include <esp_netif.h>
+    esp_netif_set_hostname(esp_netif_get_handle_from_ifkey("WIFI_STA_DEF"), "aquarium-touch");
+    #endif
     WiFi.begin(cfg.wifiSsid.c_str(), cfg.wifiPassword.c_str());
     int retries = 0;
     while (WiFi.status() != WL_CONNECTED && retries < 30) {

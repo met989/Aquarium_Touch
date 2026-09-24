@@ -4,6 +4,9 @@
 #include <DallasTemperature.h>
 #include <SD.h>
 #include <WiFi.h>
+#if defined(ESP_IDF_VERSION) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+#include <esp_netif.h>
+#endif
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <Update.h>
@@ -55,8 +58,11 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
   m_wifiConnectSSID = ssid;
   xSemaphoreGive(g_configMutex);
 
-  WiFi.setHostname("aquarium-touch");
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname("aquarium-touch");
+  #if defined(ESP_IDF_VERSION) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+  esp_netif_set_hostname(esp_netif_get_handle_from_ifkey("WIFI_STA_DEF"), "aquarium-touch");
+  #endif
   WiFi.setAutoReconnect(false);
   m_wifiAutoRetries = 0;
 
@@ -88,8 +94,11 @@ void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) 
 }
 
 void AquariumLogic::startWifiConnection() {
-  WiFi.setHostname("aquarium-touch");
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname("aquarium-touch");
+  #if defined(ESP_IDF_VERSION) && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+  esp_netif_set_hostname(esp_netif_get_handle_from_ifkey("WIFI_STA_DEF"), "aquarium-touch");
+  #endif
   WiFi.setAutoReconnect(false);
 
   if (cfg.wifiStaticEnabled && cfg.wifiIpStatic.length() > 0 && cfg.wifiIpStatic != "0.0.0.0") {

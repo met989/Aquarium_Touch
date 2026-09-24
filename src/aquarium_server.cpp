@@ -21,6 +21,16 @@ void AquariumServer::init() {
   setupRoutes();
   m_server.begin();
   ElegantOTA.begin(&m_server);
+  ElegantOTA.onStart([]() {
+    extern bool g_safeModeActive;
+    g_safeModeActive = true;
+    DBG_PRINTLN("[OTA] Update started, entering safe mode...");
+  });
+  ElegantOTA.onEnd([](bool success) {
+    extern bool g_safeModeActive;
+    g_safeModeActive = false;
+    DBG_PRINTLN(success ? "[OTA] Update successful" : "[OTA] Update failed");
+  });
   m_started = true;
   DBG_PRINTLN("[WEB] Web Server started on 80");
 
