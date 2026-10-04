@@ -151,17 +151,16 @@ void AquariumLogic::updateMQTT() {
   if (!mEnabled || WiFi.status() != WL_CONNECTED || mServer.length() == 0 || mServer == "0.0.0.0") return;
   
   if (!mqttClient.connected()) {
-      if (m_mqttConnectAttempts < 3) {
-          static unsigned long lastReconnect = 0;
-          if (millis() - lastReconnect > 30000) {
-              lastReconnect = millis();
-              reconnectMQTT();
-              if (!mqttClient.connected()) {
-                  m_mqttConnectAttempts++;
-                  Serial.printf("[MQTT] Connection failed (rc=%d). Auto-retry %d/3\n", mqttClient.state(), m_mqttConnectAttempts);
-              } else {
-                  m_mqttConnectAttempts = 0;
-              }
+      unsigned long retryInterval = (m_mqttConnectAttempts < 3) ? 30000 : 300000; // 30s or 5m
+      static unsigned long lastReconnect = 0;
+      if (millis() - lastReconnect > retryInterval) {
+          lastReconnect = millis();
+          reconnectMQTT();
+          if (!mqttClient.connected()) {
+              if (m_mqttConnectAttempts < 3) m_mqttConnectAttempts++;
+              Serial.printf("[MQTT] Connection failed (rc=%d). Auto-retry %d/3 (interval: %lu ms)\n", mqttClient.state(), m_mqttConnectAttempts, retryInterval);
+          } else {
+              m_mqttConnectAttempts = 0;
           }
       }
   } else {

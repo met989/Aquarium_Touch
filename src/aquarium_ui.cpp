@@ -463,10 +463,15 @@ void AquariumUI::drawLightTab() {
   GFX->drawString(statusTxt, 160, 32, 4);
 
   // Big Touch Toggle Button inside Card
-  drawTouchButton(50, 52, 220, 34, lightOn ? langManager.getText("LABEL_TURN_OFF_LIGHT", "TURN OFF LIGHT") : langManager.getText("LABEL_TURN_ON_LIGHT", "TURN ON LIGHT"), COLOR_CARD_BG, statusCol, cardBorder);
+  bool autoMode = aquarium.isAutoSchedule();
+  if (autoMode) {
+    drawTouchButton(50, 52, 220, 34, langManager.getText("MSG_AUTO", "AUTO (TIMER)"), COLOR_CARD_BG, COLOR_TEXT_MUTED, COLOR_CARD_BORDER);
+  } else {
+    drawTouchButton(50, 52, 220, 34, lightOn ? langManager.getText("LABEL_TURN_OFF_LIGHT", "TURN OFF LIGHT") : langManager.getText("LABEL_TURN_ON_LIGHT", "TURN ON LIGHT"), COLOR_CARD_BG, statusCol, cardBorder);
+  }
 
   // Mode Selection Card (X: 10, Y: 102, W: 300, H: 62)
-  bool autoMode = aquarium.isAutoSchedule();
+  autoMode = aquarium.isAutoSchedule();
   drawGlassCard(10, 102, 300, 62, autoMode ? COLOR_EMERALD_GREEN : COLOR_GOLD_ACCENT);
 
   GFX->setTextDatum(MC_DATUM);
@@ -1393,7 +1398,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                 m_settingsSubScreen = i + 1;
                 m_resetStep = 0;
                 m_settingsNeedsRedraw = true;
-                m_lastTouchTime = millis() + 500; // Anti-ghost touch
+                m_lastTouchTime = millis(); // Anti-ghost touch fixed (was + 500 causing uint32 underflow)
                 return;
             }
         }
@@ -1412,7 +1417,7 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
                   if (i == 1) return; // Ignore touch for Hardware & I2C for now
                   m_settingsSubScreen = 9 + i; // i=0 -> 9, i=1 -> 10, i=2 -> 11
                   m_settingsNeedsRedraw = true;
-                  m_lastTouchTime = millis() + 500; // Anti-ghost touch
+                  m_lastTouchTime = millis(); // Anti-ghost touch fixed
                   return;
               }
           }

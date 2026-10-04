@@ -199,20 +199,30 @@ extern AppConfig cfg;
 extern SemaphoreHandle_t g_configMutex;
 extern volatile bool g_saveConfigNeeded;
 
+class SDLogger : public Print {
+private:
+  char buf[256];
+  int bufIdx = 0;
+  bool isNewLine = true;
+public:
+  size_t write(uint8_t c) override;
+};
+extern SDLogger Logr;
+
 #define DBG_PRINT(x)                                                           \
   do {                                                                         \
     if (cfg.debug)                                                             \
-      Serial.print(x);                                                         \
+      Logr.print(x);                                                           \
   } while (0)
 #define DBG_PRINTLN(x)                                                         \
   do {                                                                         \
     if (cfg.debug)                                                             \
-      Serial.println(x);                                                       \
+      Logr.println(x);                                                         \
   } while (0)
 #define DBG_PRINTF(...)                                                        \
   do {                                                                         \
     if (cfg.debug)                                                             \
-      Serial.printf(__VA_ARGS__);                                              \
+      Logr.printf(__VA_ARGS__);                                                \
   } while (0)
 
 #endif

@@ -51,6 +51,8 @@ String AquariumLogic::getWifiConnectSSID() const {
   return s;
 }
 
+#include <esp_wifi.h>
+
 void AquariumLogic::connectWifiSSID(const String& ssid, const String& password) {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
   cfg.wifiSsid = ssid;
@@ -541,7 +543,7 @@ TempStatus AquariumLogic::getTempStatus() const {
 }
 
 void AquariumLogic::evaluateSchedule() {
-  if (m_manualOverride || !m_config.autoSchedule) return;
+  if (!m_config.autoSchedule) return;
 
   int h, m, s;
   getTime(h, m, s);
@@ -556,6 +558,14 @@ void AquariumLogic::evaluateSchedule() {
     shouldBeOn = (currentMins >= onMins || currentMins < offMins);
   }
 
+  static bool lastScheduledState = shouldBeOn;
+  if (shouldBeOn != lastScheduledState) {
+    m_manualOverride = false;
+    lastScheduledState = shouldBeOn;
+  }
+
+  if (m_manualOverride) return;
+
   if (m_lightOn != shouldBeOn) {
     m_lightOn = shouldBeOn;
     applyLightHardware();
@@ -567,6 +577,8 @@ void AquariumLogic::applyLightHardware() {
 }
 
 void AquariumLogic::setLightManual(bool on) {
+  if (m_config.autoSchedule) return; // Ignora se l'auto schedule è attivo
+
   m_manualOverride = true;
   m_lightOn = on;
   applyLightHardware();
@@ -625,8 +637,21 @@ bool AquariumLogic::syncNTP() {
   int tzHours = cfg.timezone.toInt();
   long gmtOffset_sec = (long)tzHours * 3600;
 
-  const char* s1 = cfg.ntpServer1.c_str();
-  const char* s2 = cfg.ntpServer2.length() > 0 ? cfg.ntpServer2.c_str() : nullptr;
+  // LwIP SNTP does NOT copy strings, it stores pointers.
+  // We MUST use static buffers so pointers remain valid.
+  static char ntp1[64];
+  static char ntp2[64];
+  strncpy(ntp1, cfg.ntpServer1.c_str(), sizeof(ntp1) - 1);
+  ntp1[sizeof(ntp1) - 1] = '\0';
+  
+  const char* s1 = ntp1;
+  const char* s2 = nullptr;
+  
+  if (cfg.ntpServer2.length() > 0) {
+    strncpy(ntp2, cfg.ntpServer2.c_str(), sizeof(ntp2) - 1);
+    ntp2[sizeof(ntp2) - 1] = '\0';
+    s2 = ntp2;
+  }
 
   configTime(gmtOffset_sec, 0, s1, s2);
 

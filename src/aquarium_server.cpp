@@ -92,6 +92,29 @@ void AquariumServer::setupRoutes() {
     delay(500); 
     ESP.restart(); 
   });
+  
+  m_server.on("/debug.log", HTTP_GET, [this]() {
+    if (SD.exists("/debug.log")) {
+      File f = SD.open("/debug.log", FILE_READ);
+      if (f.size() > 102400) {
+        f.close();
+        SD.remove("/debug.log");
+        m_server.send(200, "text/plain", "Log file was too large and has been cleared.");
+        return;
+      }
+      m_server.streamFile(f, "text/plain");
+      f.close();
+    } else {
+      m_server.send(404, "text/plain", "Log file not found or debug disabled");
+    }
+  });
+
+  m_server.on("/api/debug/clear", HTTP_POST, [this]() {
+    if (SD.exists("/debug.log")) {
+      SD.remove("/debug.log");
+    }
+    m_server.send(200, "application/json", "{\"status\":\"cleared\"}");
+  });
 }
 
 // AppConfig is defined in config.h (included via aquarium_logic.h)
@@ -388,7 +411,7 @@ void AquariumServer::handleApiConfigRawGet() {
   if (!SD.exists(CONFIG_PATH)) { m_server.send(404, "text/plain", "# Error: config.cfg not found"); return; }
   File f = SD.open(CONFIG_PATH, FILE_READ);
   if (!f) { m_server.send(500, "text/plain", "# Error reading SD"); return; }
-  m_server.send(200, "text/plain", f.readString());
+  m_server.streamFile(f, "text/plain");
   f.close();
 }
 

@@ -17,6 +17,49 @@ XPT2046_Touchscreen touch(TOUCH_CS, TOUCH_IRQ);
 // AppConfig and TouchCal are defined in config.h
 
 AppConfig cfg;
+
+SDLogger Logr;
+size_t SDLogger::write(uint8_t c) {
+  Serial.write(c);
+  if (!cfg.debug) return 1;
+
+  if (isNewLine) {
+    isNewLine = false;
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo, 0)) {
+      char timeStr[32];
+      snprintf(timeStr, sizeof(timeStr), "[%04d-%02d-%02d %02d:%02d:%02d] ",
+               timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+               timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+      for(int i = 0; timeStr[i] != '\0' && bufIdx < 250; i++) {
+         buf[bufIdx++] = timeStr[i];
+      }
+    }
+  }
+
+  buf[bufIdx++] = c;
+  if (c == '\n' || bufIdx >= 254) {
+    isNewLine = (c == '\n');
+    buf[bufIdx] = '\0';
+    if (SD.cardType() != CARD_NONE) {
+      File f = SD.open("/debug.log", FILE_APPEND);
+      if (f) {
+        if (f.size() > 102400) { // 100 KB limit
+          f.close();
+          SD.remove("/debug.log");
+          f = SD.open("/debug.log", FILE_WRITE);
+        }
+        if (f) {
+          f.print(buf);
+          f.close();
+        }
+      }
+    }
+    bufIdx = 0;
+  }
+  return 1;
+}
+
 uint16_t physW = 320, physH = 240;
 unsigned long lastTouchLog = 0;
 
@@ -368,15 +411,11 @@ bool loadConfigFromSD(bool &created, bool &updated) {
     return false;
   }
 
-  std::vector<String> lines;
   while (f.available()) {
-    lines.push_back(f.readStringUntil('\n'));
-  }
-  f.close();
-
-  for (const String &line : lines) {
+    String line = f.readStringUntil('\n');
     parseConfigLine(line);
   }
+  f.close();
 
   g_loadingConfig = false;
   return true;

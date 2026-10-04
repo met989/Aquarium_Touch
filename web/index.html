@@ -418,6 +418,12 @@
       lightEl.innerText = d.light_status || '--';
       lightEl.style.color = d.light_on ? 'var(--gold)' : 'var(--text-muted)';
       document.getElementById('statMode').innerText = d.auto_sched ? (i18nDict['MSG_AUTO'] || 'AUTO (Timer)') : (i18nDict['MSG_MANUAL'] || 'MANUALE');
+      const btnLight = document.getElementById('btnToggleLight');
+      if (btnLight) {
+        btnLight.disabled = !!d.auto_sched;
+        btnLight.style.opacity = d.auto_sched ? '0.3' : '1';
+        btnLight.style.cursor = d.auto_sched ? 'not-allowed' : 'pointer';
+      }
       document.getElementById('statOnTime').innerText = pad(d.light_on_h) + ':' + pad(d.light_on_m);
       document.getElementById('statOffTime').innerText = pad(d.light_off_h) + ':' + pad(d.light_off_m);
       document.getElementById('statRelay').innerText = d.relay_inv ? (i18nDict['LABEL_ACTIVE_LOW'] || 'Active Low') : (i18nDict['LABEL_ACTIVE_HIGH'] || 'Active High');
