@@ -1273,9 +1273,14 @@ void AquariumUI::drawCircularTempGauge(int cx, int cy, int r, float temp, float 
   GFX->drawString("°C", cx + 32, cy - 12, 2);
   
   // PH Display
-  GFX->setTextColor(COLOR_TEXT_MUTED, COLOR_BG_OCEAN);
-  // For now using a dummy value as requested "ora metti un esempio tipo 7.0"
-  GFX->drawString("PH: 7.00", cx, cy + 18, 2); 
+  char phStr[16];
+  snprintf(phStr, sizeof(phStr), "pH: %.1f", aquarium.getPhValue());
+  int phStatus = aquarium.getPhStatus();
+  uint16_t phCol = COLOR_EMERALD_GREEN;
+  if (phStatus == 1) phCol = COLOR_CYAN_GLOW;
+  else if (phStatus == 2) phCol = COLOR_CORAL_RED;
+  GFX->setTextColor(phCol, COLOR_BG_OCEAN);
+  GFX->drawString(phStr, cx, cy + 18, 2); 
 }
 
 void AquariumUI::drawGlassCard(int x, int y, int w, int h, uint16_t borderColor, uint16_t bgCol) {
@@ -1859,3 +1864,20 @@ void AquariumUI::drawSubScreenScreen() {
   String toggleTxt = cfg.autoDimming ? langManager.getText("BTN_AUTODIM_ON", "Auto-Dimming: ON") : langManager.getText("BTN_AUTODIM_OFF", "Auto-Dimming: OFF");
   drawTouchButton(10, 140, 300, 50, toggleTxt.c_str(), btnColor, txtColor, COLOR_CYAN_GLOW);
 }
+
+void AquariumUI::prepareForOTA() {
+  if (m_sprite) {
+    m_sprite->deleteSprite();
+  }
+  if (m_tft) {
+    m_tft->fillScreen(COLOR_OCEAN_DEPTH);
+    m_tft->setTextColor(TFT_WHITE, COLOR_OCEAN_DEPTH);
+    m_tft->setTextDatum(MC_DATUM);
+    m_tft->drawString("FIRMWARE UPDATE (OTA)", 160, 70, 4);
+    m_tft->setTextColor(COLOR_CYAN_GLOW, COLOR_OCEAN_DEPTH);
+    m_tft->drawString("Ricezione firmware in corso...", 160, 115, 2);
+    m_tft->setTextColor(COLOR_GOLD_ACCENT, COLOR_OCEAN_DEPTH);
+    m_tft->drawString("Non spegnere il dispositivo!", 160, 145, 2);
+  }
+}
+

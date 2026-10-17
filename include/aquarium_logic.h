@@ -57,7 +57,9 @@ public:
   // Temperature Methods
   float getTemperature() const { return m_currentTemp; }
   float getPhValue() const { return m_currentPh; }
-  int getPhStatus() const { return m_lastPhStatus; }
+  int getPhRaw() const { return m_rawPh; }
+  float getPhVoltage() const { return m_phVoltage; }
+  int getPhStatus() const;
   bool isWaterLevelOk();
   float getMinTemp() const { return m_minTemp; }
   float getMaxTemp() const { return m_maxTemp; }
@@ -98,6 +100,7 @@ public:
   int getMqttConnectAttempts() const { return m_mqttConnectAttempts; }
   bool isMqttConnected() const;
   int getMqttState() const;
+  void stopMQTT();
 
   // WiFi Management Methods
   bool isWifiConnected() const;
@@ -158,6 +161,9 @@ private:
   bool m_sensorConnected = false;
   
   float m_currentPh = 7.0f;
+  int m_rawPh = 0;
+  float m_phVoltage = 0.0f;
+  bool m_phInitialized = false;
   uint32_t m_lastPhReadTime = 0;
 
   Adafruit_MCP23X17 m_mcp;
@@ -190,6 +196,7 @@ private:
   // Alarm states
   TempStatus m_lastTempStatus = TEMP_OPTIMAL;
   int m_lastPhStatus = 0; // 0 = OK, 1 = Low, 2 = High
+  int m_lastEmailPhStatus = 0;
   bool m_lastWaterLevelOk = true;
 };
 

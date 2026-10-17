@@ -403,14 +403,30 @@
         mqttBadge.style.display = 'none';
       }
       
-      document.getElementById('tempVal').innerText = parseFloat(d.temp).toFixed(1) + ' C';
-      document.getElementById('tempStatus').innerText = d.temp_status || '--';
-      document.getElementById('statTempMin').innerText = parseFloat(d.temp_min).toFixed(1) + ' C';
-      document.getElementById('statTempMax').innerText = parseFloat(d.temp_max).toFixed(1) + ' C';
-      document.getElementById('statTempOff').innerText = parseFloat(d.temp_offset).toFixed(1) + ' C';
+      document.getElementById('tempVal').innerText = parseFloat(d.temp).toFixed(1) + ' °C';
+      const tempStatusEl = document.getElementById('tempStatus');
+      tempStatusEl.innerText = d.temp_status || '--';
+      if (d.temp_status_code === 1 || d.temp < d.temp_min) {
+        tempStatusEl.style.color = 'var(--cyan-glow)';
+      } else if (d.temp_status_code === 2 || d.temp > d.temp_max) {
+        tempStatusEl.style.color = 'var(--coral)';
+      } else {
+        tempStatusEl.style.color = 'var(--emerald)';
+      }
+      document.getElementById('statTempMin').innerText = parseFloat(d.temp_min).toFixed(1) + ' °C';
+      document.getElementById('statTempMax').innerText = parseFloat(d.temp_max).toFixed(1) + ' °C';
+      document.getElementById('statTempOff').innerText = parseFloat(d.temp_offset).toFixed(1) + ' °C';
       
       document.getElementById('phVal').innerText = parseFloat(d.ph).toFixed(1);
-      document.getElementById('phStatusText').innerText = d.ph_status || '--';
+      const phStatusEl = document.getElementById('phStatusText');
+      phStatusEl.innerText = d.ph_status || '--';
+      if (d.ph_status_code === 1 || d.ph < d.ph_min) {
+        phStatusEl.style.color = 'var(--cyan-glow)';
+      } else if (d.ph_status_code === 2 || d.ph > d.ph_max) {
+        phStatusEl.style.color = 'var(--coral)';
+      } else {
+        phStatusEl.style.color = 'var(--emerald)';
+      }
       document.getElementById('statPhMin').innerText = parseFloat(d.ph_min).toFixed(1);
       document.getElementById('statPhMax').innerText = parseFloat(d.ph_max).toFixed(1);
       document.getElementById('statPhOff').innerText = parseFloat(d.ph_offset).toFixed(1);

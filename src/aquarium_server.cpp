@@ -1,5 +1,6 @@
 #include "../include/aquarium_server.h"
 #include "../include/aquarium_logic.h"
+#include "../include/aquarium_ui.h"
 #include "../include/language_manager.h"
 #include "../include/config.h"
 #include <WiFi.h>
@@ -23,13 +24,23 @@ void AquariumServer::init() {
   ElegantOTA.begin(&m_server);
   ElegantOTA.onStart([]() {
     extern bool g_safeModeActive;
+    extern AquariumUI aquariumUI;
+    extern AquariumLogic aquarium;
+    extern uint32_t g_otaStartTime;
     g_safeModeActive = true;
-    DBG_PRINTLN("[OTA] Update started, entering safe mode...");
+    g_otaStartTime = millis();
+    aquarium.stopMQTT();
+    aquariumUI.prepareForOTA();
+    Serial.printf("[OTA] Update started! Free Heap: %u bytes\n", ESP.getFreeHeap());
   });
   ElegantOTA.onEnd([](bool success) {
     extern bool g_safeModeActive;
     g_safeModeActive = false;
-    DBG_PRINTLN(success ? "[OTA] Update successful" : "[OTA] Update failed");
+    Serial.println(success ? "[OTA] Update successful! Rebooting..." : "[OTA] Update failed! Rebooting in 2s...");
+    if (!success) {
+      delay(2000);
+      ESP.restart();
+    }
   });
   m_started = true;
   DBG_PRINTLN("[WEB] Web Server started on 80");
@@ -187,11 +198,15 @@ void AquariumServer::handleApiStatus() {
   json += "\"temp_max\":";         json += jFloat(aq.targetTempMax); json += ",";
   json += "\"temp_offset\":";      json += jFloat(aq.tempOffset); json += ",";
   json += "\"temp_status\":\"";    json += jStr(tempStatusStr);  json += "\",";
+  json += "\"temp_status_code\":"; json += String((int)aquarium.getTempStatus()); json += ",";
   json += "\"ph\":";               json += jFloat(aquarium.getPhValue()); json += ",";
   json += "\"ph_min\":";           json += jFloat(aq.targetPhMin); json += ",";
   json += "\"ph_max\":";           json += jFloat(aq.targetPhMax); json += ",";
   json += "\"ph_offset\":";        json += jFloat(aq.phOffset); json += ",";
+  json += "\"ph_raw\":";           json += String(aquarium.getPhRaw()); json += ",";
+  json += "\"ph_voltage\":";       json += jFloat(aquarium.getPhVoltage()); json += ",";
   json += "\"ph_status\":\"";      json += jStr(phStatusStr);  json += "\",";
+  json += "\"ph_status_code\":";   json += String(phStatusInt); json += ",";
   json += "\"light_on\":";         json += String(aquarium.isLightOn() ? "true" : "false"); json += ",";
   json += "\"light_status\":\"";   json += jStr(lightStatusStr); json += "\",";
   json += "\"auto_sched\":";       json += String(aquarium.isAutoSchedule() ? "true" : "false"); json += ",";

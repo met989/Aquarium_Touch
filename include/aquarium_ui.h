@@ -38,6 +38,7 @@ public:
 
   UiTab getActiveTab() const { return m_activeTab; }
   void setTab(UiTab tab);
+  void prepareForOTA();
 
   void setLatestVersion(const String& ver, const String& url) {
     m_latestVersion = ver;

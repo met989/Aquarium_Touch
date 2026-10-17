@@ -267,3 +267,10 @@ void AquariumLogic::updateMQTT() {
       }
   }
 }
+
+void AquariumLogic::stopMQTT() {
+  if (mqttClient.connected()) {
+    mqttClient.disconnect();
+  }
+}
+

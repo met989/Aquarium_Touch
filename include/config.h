@@ -62,11 +62,11 @@
 #define LOAD_GLCD 1
 #define LOAD_FONT2 1
 #define LOAD_FONT4 1
-#define LOAD_FONT6 1
-#define LOAD_FONT7 1
-#define LOAD_FONT8 1
-#define LOAD_GFXFF 1
-#define SMOOTH_FONT 1
+#define LOAD_FONT6 0
+#define LOAD_FONT7 0
+#define LOAD_FONT8 0
+#define LOAD_GFXFF 0
+#define SMOOTH_FONT 0
 
 #define SPI_FREQUENCY 27000000
 #define SPI_READ_FREQUENCY 20000000

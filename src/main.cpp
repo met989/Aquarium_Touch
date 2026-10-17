@@ -65,6 +65,7 @@ unsigned long lastTouchLog = 0;
 
 RTC_DATA_ATTR int rtc_bootCount = 0;
 bool g_safeModeActive = false;
+uint32_t g_otaStartTime = 0;
 
 void backlightOn() {
   aquarium.updateBacklight();
@@ -970,7 +971,14 @@ void setup() {
 void loop() {
   if (g_safeModeActive) {
     aquariumServer.update();
-    delay(10);
+    // Timeout di sicurezza: se l'OTA si blocca per più di 90s senza completarsi, riavvia pulito
+    if (g_otaStartTime > 0 && (millis() - g_otaStartTime > 90000)) {
+      Serial.println("[OTA] Timeout exceeded during update! Rebooting...");
+      delay(500);
+      ESP.restart();
+    }
+    delay(1);
+    yield();
     return;
   }
   

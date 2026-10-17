@@ -179,7 +179,8 @@ void AquariumLogic::init() {
     m_mcpReady = false;
   }
   
-  pinMode(PH_SENSOR_PIN, ANALOG);
+  pinMode(PH_SENSOR_PIN, INPUT);
+  analogSetPinAttenuation(PH_SENSOR_PIN, ADC_11db);
   // TEMP_SENSOR_PIN (22) sarà gestito dalla libreria DS18B20/OneWire
 
   // 3. Inizializzazione Sensore Temperatura (DS18B20 su 1-Wire)
@@ -194,7 +195,7 @@ void AquariumLogic::init() {
   }
   // 4. LDR and Backlight PWM setup
   pinMode(LDR_PIN, ANALOG);
-  analogSetAttenuation(ADC_0db); // Massima sensibilità a bassa tensione
+  analogSetPinAttenuation(LDR_PIN, ADC_0db); // Sensibilità a bassa tensione solo per il pin LDR
   
   ledcSetup(0, 5000, 8); // Canale 0, 5000 Hz, risoluzione 8 bit
   ledcAttachPin(TFT_BL, 0);
@@ -385,15 +386,29 @@ void AquariumLogic::readSensor() {
   // Leggi pH ogni secondo (evita spam)
   if (millis() - m_lastPhReadTime > 1000) {
     m_lastPhReadTime = millis();
-    int rawPh = analogRead(PH_SENSOR_PIN);
-    float voltage = (rawPh / 4095.0f) * 3.3f;
+    long rawSum = 0;
+    long mvSum = 0;
+    for (int i = 0; i < 10; i++) {
+      rawSum += analogRead(PH_SENSOR_PIN);
+      mvSum += analogReadMilliVolts(PH_SENSOR_PIN);
+      delay(2);
+    }
+    int rawPh = rawSum / 10;
+    float voltage = (mvSum / 10.0f) / 1000.0f; // Calcolo preciso con calibrazione di fabbrica eFuse
+    m_rawPh = rawPh;
+    m_phVoltage = voltage;
     
-    // Formula placeholder (lineare). L'utente fornirà i valori di calibrazione.
-    // Esempio generico: pH = 3.5 * voltage + offset
+    // Formula lineare con calibrazione offset
     float calculatedPh = (3.5f * voltage) + m_config.phOffset; 
     
-    // Media mobile semplice
-    m_currentPh = (m_currentPh == 7.0f) ? calculatedPh : (m_currentPh * 0.8f + calculatedPh * 0.2f);
+    // Inizializzazione rapida o media mobile (filtro IIR)
+    if (!m_phInitialized) {
+      m_currentPh = calculatedPh;
+      m_phInitialized = true;
+    } else {
+      m_currentPh = (m_currentPh * 0.8f) + (calculatedPh * 0.2f);
+    }
+    m_lastPhStatus = getPhStatus();
   }
 }
 
@@ -410,17 +425,7 @@ void AquariumLogic::checkAlarmsAndNotify() {
   if (!cfg.emailEnabled || WiFi.status() != WL_CONNECTED) return;
   
   TempStatus currentTempStatus = m_sensorConnected ? getTempStatus() : TEMP_OPTIMAL;
-  float phHyst = 0.2f;
-  int currentPhStatus = m_lastPhStatus;
-  if (m_lastPhStatus == 1) {
-    if (m_currentPh >= m_config.targetPhMin + phHyst) currentPhStatus = 0;
-  } else if (m_lastPhStatus == 2) {
-    if (m_currentPh <= m_config.targetPhMax - phHyst) currentPhStatus = 0;
-  } else {
-    if (m_currentPh <= m_config.targetPhMin - phHyst) currentPhStatus = 1;
-    if (m_currentPh >= m_config.targetPhMax + phHyst) currentPhStatus = 2;
-  }
-  
+  int currentPhStatus = getPhStatus();
   bool currentWaterLevelOk = isWaterLevelOk();
   
   String subject = "";
@@ -445,7 +450,7 @@ void AquariumLogic::checkAlarmsAndNotify() {
     sendEmail(subject, body);
   }
   
-  if (currentPhStatus != m_lastPhStatus) {
+  if (currentPhStatus != m_lastEmailPhStatus) {
     if (currentPhStatus == 2) {
       subject = langManager.getText("ALARM_PH_HIGH_SUB");
       snprintf(buf, sizeof(buf), langManager.getText("ALARM_PH_HIGH_BODY"), m_currentPh, m_config.targetPhMax);
@@ -459,7 +464,7 @@ void AquariumLogic::checkAlarmsAndNotify() {
       snprintf(buf, sizeof(buf), langManager.getText("INFO_PH_OK_BODY"), m_currentPh);
       body = String(buf);
     }
-    m_lastPhStatus = currentPhStatus;
+    m_lastEmailPhStatus = currentPhStatus;
     sendEmail(subject, body);
   }
   
@@ -539,6 +544,21 @@ TempStatus AquariumLogic::getTempStatus() const {
     if (m_currentTemp <= m_config.targetTempMin - hyst) return TEMP_TOO_COLD;
     if (m_currentTemp >= m_config.targetTempMax + hyst) return TEMP_TOO_HOT;
     return TEMP_OPTIMAL;
+  }
+}
+
+int AquariumLogic::getPhStatus() const {
+  float hyst = 0.1f;
+  if (m_lastPhStatus == 1) { // 1 = Low
+    if (m_currentPh >= m_config.targetPhMin + hyst) return 0;
+    return 1;
+  } else if (m_lastPhStatus == 2) { // 2 = High
+    if (m_currentPh <= m_config.targetPhMax - hyst) return 0;
+    return 2;
+  } else { // 0 = Optimal
+    if (m_currentPh <= m_config.targetPhMin - hyst) return 1;
+    if (m_currentPh >= m_config.targetPhMax + hyst) return 2;
+    return 0;
   }
 }
 
