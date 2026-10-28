@@ -1,5 +1,7 @@
 # Aquarium OS Touch 🐠
 
+[🇮🇹 Italiano](README.md) | [🇬🇧 English](README_EN.md)
+
 Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitoraggio ed automazione completa di un acquario tramite display touch-screen a colori e server web integrato.
 
 ---
@@ -222,6 +224,12 @@ All'avvio della compilazione con PlatformIO, lo script `embed_languages.py` legg
 Aquarium_Touch/
 ├── .agents/
 │   └── AGENTS.md               # Regole di progetto e workflow per agenti AI
+├── homeassistant/
+│   ├── aquarium_dashboard.yaml # Dashboard Lovelace completa per Home Assistant
+│   ├── aquarium_view.yaml      # Vista a moduli liberi e indipendenti
+│   ├── aquarium_single_card.yaml # Scheda singola per l'editor manuale Lovelace
+│   ├── mqtt_entities.yaml      # Configurazione switch e pulsante riavvio MQTT
+│   └── README.md               # Guida all'integrazione con Home Assistant
 ├── include/
 │   ├── config.h                # Single Point of Truth (Pinout, Colori RGB565, Default)
 │   ├── aquarium_logic.h        # Definizione classe AquariumLogic (Temperatura, Relè, Wi-Fi, SD)
