@@ -133,6 +133,7 @@ public:
   void setLanguageFile(const String& langPath);
   bool syncNTP();
   String getNtpStatus() const { return m_ntpStatus; }
+  bool isDst() const { return m_isDst; }
 
   // Schedule Configuration
   const AquariumConfig& getConfig() const { return m_config; }
@@ -198,6 +199,7 @@ private:
   int m_lastPhStatus = 0; // 0 = OK, 1 = Low, 2 = High
   int m_lastEmailPhStatus = 0;
   bool m_lastWaterLevelOk = true;
+  bool m_isDst = false;
 };
 
 bool writeWholeConfigFileSafe();

@@ -115,6 +115,7 @@
       <div style="font-size:2rem;font-weight:700;text-align:center;color:var(--cyan-glow);margin:10px 0" id="liveTime">00:00:00</div>
       <div style="text-align:center;color:var(--text-muted);margin-bottom:12px" id="liveDate">--/--/----</div>
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_TZ">Timezone</span></span><span class="stat-value" id="statTz">--</span></div>
+      <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_DST">Ora Legale (DST)</span></span><span class="stat-value" id="statDst">--</span></div>
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_FMT_HOUR">Formato ora</span></span><span class="stat-value" id="statFmtHour">--</span></div>
       <div class="stat-row"><span class="stat-label"><span data-i18n="LABEL_FMT_DATE">Formato data</span></span><span class="stat-value" id="statFmtDate">--</span></div>
       <div class="stat-row"><span class="stat-label">NTP</span><span class="stat-value" id="statNtp1">--</span></div>
@@ -156,6 +157,10 @@
     <!-- DATA & NTP -->
     <div class="card">
       <div class="card-title">⏰ <span data-i18n="TITLE_DATETIME_NTP">Configurazione Orario</span></div>
+      <div style="display:flex; align-items:center; margin-bottom:15px;">
+        <input type="checkbox" id="cfgDstEnabled" style="margin-right:10px; width:20px; height:20px;">
+        <label for="cfgDstEnabled" style="font-weight:bold;"><span data-i18n="LABEL_ENABLE_DST">Ora Legale Automatica (EU DST - CET/CEST)</span></label>
+      </div>
       <div class="form-group"><label><span data-i18n="LABEL_TIMEZONE">Timezone Offset (es. 0, +1, -1, +2)</span>:</label><select id="cfgTimezone"><option value="-12">-12</option><option value="-11">-11</option><option value="-10">-10</option><option value="-9">-9</option><option value="-8">-8</option><option value="-7">-7</option><option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option><option value="0">0</option><option value="+1">+1</option><option value="+2">+2</option><option value="+3">+3</option><option value="+4">+4</option><option value="+5">+5</option><option value="+6">+6</option><option value="+7">+7</option><option value="+8">+8</option><option value="+9">+9</option><option value="+10">+10</option><option value="+11">+11</option><option value="+12">+12</option></select></div>
       <div class="form-group"><label><span data-i18n="LABEL_FMT_HOUR_LONG">Formato Ora</span>:</label>
         <select id="cfgFormatHour">
@@ -445,7 +450,12 @@
       document.getElementById('statRelay').innerText = d.relay_inv ? (i18nDict['LABEL_ACTIVE_LOW'] || 'Active Low') : (i18nDict['LABEL_ACTIVE_HIGH'] || 'Active High');
       document.getElementById('liveTime').innerText = d.time || '00:00:00';
       document.getElementById('liveDate').innerText = d.date || '--';
-      document.getElementById('statTz').innerText = 'UTC' + (d.timezone >= 0 ? '' : '') + d.timezone;
+      document.getElementById('statTz').innerText = 'UTC' + (d.timezone >= 0 ? '+' : '') + d.timezone;
+      if (d.dst_enabled) {
+        document.getElementById('statDst').innerText = d.is_dst ? ('🟢 ' + (i18nDict['LABEL_DAYLIGHT_TIME'] || 'Ora Legale (CEST)')) : ('⚪ ' + (i18nDict['LABEL_STANDARD_TIME'] || 'Ora Solare (CET)'));
+      } else {
+        document.getElementById('statDst').innerText = '⚪ ' + (i18nDict['OPT_DISABLED'] || 'Disattivato');
+      }
       document.getElementById('statFmtHour').innerText = d.format_hour + 'h';
       document.getElementById('statFmtDate').innerText = DATE_FMTS[d.date_format] || '--';
       document.getElementById('statNtp1').innerText = d.ntp_server1 || '--';
@@ -462,6 +472,7 @@
         document.getElementById('timeOff').value = pad(d.light_off_h) + ':' + pad(d.light_off_m);
         updateLightDuration();
         document.getElementById('cfgTimezone').value = d.timezone;
+        document.getElementById('cfgDstEnabled').checked = !!d.dst_enabled;
         document.getElementById('cfgFormatHour').value = d.format_hour;
         document.getElementById('cfgDateFormat').value = d.date_format;
         document.getElementById('cfgNtp1').value = d.ntp_server1;
@@ -549,7 +560,8 @@
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }
   async function saveTimeSettings() {
-    const b='timezone='+encodeURIComponent(document.getElementById('cfgTimezone').value)+'&format_hour='+document.getElementById('cfgFormatHour').value+'&date_format='+document.getElementById('cfgDateFormat').value+'&ntp1='+encodeURIComponent(document.getElementById('cfgNtp1').value)+'&ntp2='+encodeURIComponent(document.getElementById('cfgNtp2').value);
+    const dst = document.getElementById('cfgDstEnabled').checked ? '1' : '0';
+    const b='timezone='+encodeURIComponent(document.getElementById('cfgTimezone').value)+'&dst_enabled='+dst+'&format_hour='+document.getElementById('cfgFormatHour').value+'&date_format='+document.getElementById('cfgDateFormat').value+'&ntp1='+encodeURIComponent(document.getElementById('cfgNtp1').value)+'&ntp2='+encodeURIComponent(document.getElementById('cfgNtp2').value);
     await fetch('/api/settings/time',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
     showToast(i18nDict['MSG_TOAST_SAVED'] || 'Saved!'); updateStatus();
   }

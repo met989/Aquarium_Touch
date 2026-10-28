@@ -218,6 +218,8 @@ void AquariumServer::handleApiStatus() {
   json += "\"date_format\":";      json += String(aq.dateFormat); json += ",";
   json += "\"screensaver_t\":";    json += String(aq.screensaverTime); json += ",";
   json += "\"timezone\":\"";       json += jStr(cfg.timezone);    json += "\",";
+  json += "\"dst_enabled\":";      json += String(cfg.dstEnabled ? "true" : "false"); json += ",";
+  json += "\"is_dst\":";           json += String(aquarium.isDst() ? "true" : "false"); json += ",";
   json += "\"format_hour\":";      json += String(cfg.formatHour); json += ",";
   json += "\"ntp_server1\":\"";    json += jStr(cfg.ntpServer1);  json += "\",";
   json += "\"ntp_server2\":\"";    json += jStr(cfg.ntpServer2);  json += "\",";
@@ -293,6 +295,7 @@ void AquariumServer::handleApiSetPhSettings() {
 void AquariumServer::handleApiSetTimeSettings() {
   xSemaphoreTake(g_configMutex, portMAX_DELAY);
   if (m_server.hasArg("timezone"))    { String tz = m_server.arg("timezone"); tz.trim(); if (tz.length() > 0) cfg.timezone = tz; }
+  if (m_server.hasArg("dst_enabled")) { cfg.dstEnabled = (m_server.arg("dst_enabled") == "1" || m_server.arg("dst_enabled").equalsIgnoreCase("true")); }
   if (m_server.hasArg("format_hour")) { cfg.formatHour = m_server.arg("format_hour").toInt(); }
   if (m_server.hasArg("date_format")) { aquarium.setDateFormat(m_server.arg("date_format").toInt()); }
   if (m_server.hasArg("ntp1"))        { cfg.ntpServer1 = m_server.arg("ntp1"); }

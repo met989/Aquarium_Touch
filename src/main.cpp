@@ -109,6 +109,7 @@ void setDefaults() {
   cfg.ntpServer1 = DEFAULT_NTP_SERVER1;
   cfg.ntpServer2 = DEFAULT_NTP_SERVER2;
   cfg.timezone = DEFAULT_TIMEZONE;
+  cfg.dstEnabled = DEFAULT_DST_ENABLED;
 
   for (int i = 0; i < 4; i++)
     cfg.touch[i] = {0, 0, 0, 0};
@@ -166,6 +167,9 @@ bool parseConfigLine(const String &rawLine) {
       tzVal = DEFAULT_TIMEZONE;
     }
     cfg.timezone = tzVal;
+  }
+  else if (key.equalsIgnoreCase("dst_enabled") || key.equalsIgnoreCase("auto_dst")) {
+    cfg.dstEnabled = (val == "1" || val.equalsIgnoreCase("true"));
   }
 
   else if (key.equalsIgnoreCase("touch_min_x0"))
@@ -295,6 +299,7 @@ String buildConfigText() {
   }
   cfg.timezone = tzVal;
   out += "timezone=\"" + cfg.timezone + "\"\n";
+  out += "dst_enabled=" + String(cfg.dstEnabled ? "1" : "0") + "\n";
 
   for (int i = 0; i < 4; i++) {
     out += "touch_min_x" + String(i) + "=" + String(cfg.touch[i].minX) + "\n";
@@ -412,11 +417,23 @@ bool loadConfigFromSD(bool &created, bool &updated) {
     return false;
   }
 
+  bool foundDst = false;
   while (f.available()) {
     String line = f.readStringUntil('\n');
+    if (line.indexOf("dst_enabled") >= 0 || line.indexOf("auto_dst") >= 0) {
+      foundDst = true;
+    }
     parseConfigLine(line);
   }
   f.close();
+
+  // Se è la prima volta che si esegue il firmware con supporto DST ed era impostato +2 (fuso estivo legacy per l'Italia),
+  // correggiamo la timezone base a +1 (CET standard) così il cambio automatico solare/legale sarà perfetto!
+  if (!foundDst && (cfg.timezone == "+2" || cfg.timezone == "2")) {
+    cfg.timezone = "+1";
+    cfg.dstEnabled = true;
+    writeWholeConfigFileSafe();
+  }
 
   g_loadingConfig = false;
   return true;

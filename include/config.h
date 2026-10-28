@@ -137,6 +137,8 @@ static const uint32_t BOOT_HOLD_MS = 3000;
 #define DEFAULT_LANGUAGE_NAME "English"
 #define LANGUAGES_DIR "/languages"
 #define DEFAULT_TIMEZONE "0"
+#define DEFAULT_DST_ENABLED true
+#define POSIX_TZ_EU "CET-1CEST,M3.5.0,M10.5.0/3"
 #define DEFAULT_NTP_SERVER1 "pool.ntp.org"
 #define DEFAULT_NTP_SERVER2 "time.nist.gov"
 
@@ -173,6 +175,7 @@ struct AppConfig {
   String wifiIpStatic, wifiSubnet, wifiGateway, wifiDns1, wifiDns2;
   String weatherApiKey, weatherCity;
   String ntpServer1, ntpServer2, timezone;
+  bool dstEnabled;
   TouchCal touch[4]; // Screen rotation calibration (0..3)
   String mqttServer;
   int mqttPort;

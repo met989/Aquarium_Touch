@@ -74,7 +74,7 @@ Firmware avanzato per microcontrollori **ESP32** dedicato al controllo, monitora
   - Override manuale rapido da touch screen o da interfaccia web.
 - **Connettività Wi-Fi & Servizi di Rete:**
   - Scansione asincrona delle reti Wi-Fi direttamente dall'interfaccia touch con selezione ed inserimento password a schermo.
-  - Sincronizzazione dell'ora solare via server NTP (`pool.ntp.org`, `time.nist.gov`) con fuso orario regolabile (tramite comodo menu a tendina nella Web UI).
+  - Sincronizzazione dell'orario via server NTP (`pool.ntp.org`, `time.nist.gov`) con gestione fuso orario e **passaggio automatico tra Ora Solare e Ora Legale Europea (EU DST - CET/CEST)**, attivabile sia da touchscreen (`DST: AUTO`) che da interfaccia Web.
   - Supporto per IP Statico o DHCP.
   - **Safety & Cold Boot Anti-Crash:** Inizializzazione ottimizzata della radio Wi-Fi per evitare blocchi o "kernel panic" all'accensione. Se la connessione fallisce per 3 volte, il sistema interrompe i tentativi automatici in attesa di un riavvio della scansione manuale.
   - **Integrazione MQTT Avanzata e Dinamica:** Configurazione del broker aggiornata in tempo reale "al volo" (ogni 30s) dalla Web UI, senza necessità di riavviare l'ESP32.

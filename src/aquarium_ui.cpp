@@ -613,7 +613,11 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         // Title (Shifted down)
         GFX->setTextColor(COLOR_CYAN_GLOW);
         GFX->setTextDatum(TC_DATUM);
-        String titleStr = String(langManager.getText("TITLE_DATETIME", "DATE & TIME")) + " [ UTC: " + cfg.timezone + " ]";
+        String tzInfo = "UTC: " + cfg.timezone;
+        if (cfg.dstEnabled) {
+          tzInfo += (aquarium.isDst() ? " CEST" : " CET");
+        }
+        String titleStr = String(langManager.getText("TITLE_DATETIME", "DATE & TIME")) + " [" + tzInfo + "]";
         GFX->drawString(titleStr.c_str(), 190, 10, 2);
 
         // Date Time Card (Huge - Shifted down)
@@ -628,17 +632,26 @@ void AquariumUI::drawSettingsSubScreen(int sub) {
         GFX->setTextColor(COLOR_BG_OCEAN);
         GFX->drawString(combined, 160, 57, 4);
         
-        // Date Format Toggle Button (Larger: Y: 104, Height: 44)
-        GFX->fillRoundRect(10, 104, 300, 44, 8, COLOR_CARD_BORDER);
-        GFX->drawRoundRect(10, 104, 300, 44, 8, COLOR_CYAN_GLOW);
+        // Date Format Toggle Button (Left: X: 10, Width: 175, Height: 44)
+        GFX->fillRoundRect(10, 104, 175, 44, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(10, 104, 175, 44, 8, COLOR_CYAN_GLOW);
         GFX->setTextColor(TFT_WHITE);
         
-        String fmtLabel = String(langManager.getText("LABEL_DATE_FMT", "DATE FORMAT:")) + " ";
+        String fmtLabel = "";
         const AquariumConfig& acfg = aquarium.getConfig();
         if (acfg.dateFormat == DATE_FORMAT_DDMMYYYY) fmtLabel += "GG/MM/AAAA";
         else if (acfg.dateFormat == DATE_FORMAT_MMDDYYYY) fmtLabel += "MM/GG/AAAA";
         else fmtLabel += "AAAA/MM/GG";
-        GFX->drawString(fmtLabel, 160, 118, 2);
+        GFX->drawString(fmtLabel, 97, 118, 2);
+        
+        // DST Auto Toggle Button (Right: X: 195, Width: 115, Height: 44)
+        uint16_t dstBorder = cfg.dstEnabled ? COLOR_CYAN_GLOW : COLOR_TEXT_MUTED;
+        uint16_t dstTextColor = cfg.dstEnabled ? COLOR_GOLD_ACCENT : COLOR_TEXT_MUTED;
+        GFX->fillRoundRect(195, 104, 115, 44, 8, COLOR_CARD_BORDER);
+        GFX->drawRoundRect(195, 104, 115, 44, 8, dstBorder);
+        GFX->setTextColor(dstTextColor);
+        String dstLabel = cfg.dstEnabled ? "DST: AUTO" : "DST: OFF";
+        GFX->drawString(dstLabel, 252, 118, 2);
         
         // NTP Sync Button (Larger: Y: 164, Height: 52)
         GFX->fillRoundRect(10, 164, 145, 52, 8, COLOR_CARD_BORDER);
@@ -1428,9 +1441,17 @@ void AquariumUI::handleTouch(int touchX, int touchY) {
           }
       } else if (m_settingsSubScreen == 1) {
         // Sub 1: Data & Ora (Updated for enlarged Y: 104..148 and 164..216)
-        // Date Format Toggle Button (X: 10..310, sy: 104..148)
-        if (touchX >= 10 && touchX <= 310 && sy >= 104 && sy <= 148) {
+        // Date Format Toggle Button (X: 10..185, sy: 104..148)
+        if (touchX >= 10 && touchX <= 185 && sy >= 104 && sy <= 148) {
           aquarium.setDateFormat((cfg.dateFormat + 1) % 3);
+          m_settingsNeedsRedraw = true;
+        }
+        // DST Auto Toggle Button (X: 195..310, sy: 104..148)
+        else if (touchX >= 195 && touchX <= 310 && sy >= 104 && sy <= 148) {
+          ::cfg.dstEnabled = !::cfg.dstEnabled;
+          extern bool writeWholeConfigFileSafe();
+          writeWholeConfigFileSafe();
+          aquarium.syncNTP();
           m_settingsNeedsRedraw = true;
         }
         // NTP Sync Button (X: 10..155, sy: 164..216)

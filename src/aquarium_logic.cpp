@@ -202,6 +202,35 @@ void AquariumLogic::init() {
   updateBacklight(); // Imposta la luminosità iniziale
 
   loadConfigSD();
+
+  // Apply TZ environment immediately on boot so any RTC time uses correct DST/offset
+  int tzHours = cfg.timezone.toInt();
+  if (cfg.dstEnabled) {
+    char posixTz[64];
+    if (tzHours == 1) {
+      strncpy(posixTz, POSIX_TZ_EU, sizeof(posixTz));
+    } else if (tzHours == 0) {
+      strncpy(posixTz, "GMT0BST,M3.5.0,M10.5.0/3", sizeof(posixTz));
+    } else if (tzHours == 2) {
+      strncpy(posixTz, "EET-2EEST,M3.5.0,M10.5.0/3", sizeof(posixTz));
+    } else {
+      int stdOffset = -tzHours;
+      snprintf(posixTz, sizeof(posixTz), "UTC%+dDST,M3.5.0,M10.5.0/3", stdOffset);
+    }
+    posixTz[sizeof(posixTz) - 1] = '\0';
+    setenv("TZ", posixTz, 1);
+    tzset();
+  } else {
+    setenv("TZ", "", 1);
+    tzset();
+  }
+
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year > 120) {
+    m_uptimeSeconds = timeinfo.tm_hour * 3600 + timeinfo.tm_min * 60 + timeinfo.tm_sec;
+    m_isDst = (timeinfo.tm_isdst > 0);
+  }
+
   evaluateSchedule();
   applyLightHardware();
   initMQTT();
@@ -245,14 +274,26 @@ void AquariumLogic::update() {
       checkAlarmsAndNotify();
   }
 
-  // Automatic NTP Sync when Wi-Fi is connected (on first connect & every 24 hours)
+  // Automatic NTP Sync as soon as Wi-Fi connects (immediate retry until success & every 24 hours)
   static bool hasSynced = false;
   static uint32_t lastNtpSync = 0;
+  static uint32_t lastNtpAttempt = 0;
   bool isConn = (WiFi.status() == WL_CONNECTED);
-  if (isConn && now >= 30000 && (!hasSynced || (now - lastNtpSync >= 86400000))) {
-    lastNtpSync = now;
-    hasSynced = true;
-    syncNTP();
+  if (isConn) {
+    if (!hasSynced) {
+      if (now - lastNtpAttempt >= 2000) {
+        lastNtpAttempt = now;
+        if (syncNTP()) {
+          hasSynced = true;
+          lastNtpSync = now;
+        }
+      }
+    } else if (now - lastNtpSync >= 86400000) {
+      lastNtpSync = now;
+      syncNTP();
+    }
+  } else {
+    hasSynced = false;
   }
 
   // Clock Ticking (1s increment)
@@ -263,6 +304,7 @@ void AquariumLogic::update() {
     struct tm timeinfo;
     if (getLocalTime(&timeinfo, 0) && timeinfo.tm_year > 120) { // Year > 2020 (1900 + 120)
       m_uptimeSeconds = timeinfo.tm_hour * 3600 + timeinfo.tm_min * 60 + timeinfo.tm_sec;
+      m_isDst = (timeinfo.tm_isdst > 0);
     } else {
       m_uptimeSeconds += elapsedSec;
     }
@@ -316,6 +358,7 @@ void AquariumLogic::update() {
       m_wifiConnectState = WIFI_CONN_SUCCESS;
       m_wifiConnectResultTime = millis();
       m_wifiScanStatus = String(langManager.getText("MSG_WIFI_CONNECTED_TO")) + cfg.wifiSsid;
+      syncNTP();
     } else if (millis() - m_wifiConnectStartTime > 15000 || st == WL_CONNECT_FAILED || st == WL_NO_SSID_AVAIL) {
       m_wifiAutoRetries++;
       m_wifiScanStatus = String(langManager.getText("MSG_WIFI_FAIL_ATTEMPT")) + String(m_wifiAutoRetries) + "/3)";
@@ -655,7 +698,6 @@ bool AquariumLogic::syncNTP() {
   }
 
   int tzHours = cfg.timezone.toInt();
-  long gmtOffset_sec = (long)tzHours * 3600;
 
   // LwIP SNTP does NOT copy strings, it stores pointers.
   // We MUST use static buffers so pointers remain valid.
@@ -673,11 +715,36 @@ bool AquariumLogic::syncNTP() {
     s2 = ntp2;
   }
 
-  configTime(gmtOffset_sec, 0, s1, s2);
+  if (cfg.dstEnabled) {
+    // POSIX TZ: Regola automatica Ora Legale Europea (ultima domenica di marzo 02:00 -> ultima domenica di ottobre 03:00)
+    // In POSIX l'offset è positivo verso ovest (UTC - locale): UTC+1 -> -1 (CET), UTC+2 -> -2 (CEST).
+    char posixTz[64];
+    if (tzHours == 1) {
+      strncpy(posixTz, POSIX_TZ_EU, sizeof(posixTz));
+    } else if (tzHours == 0) {
+      strncpy(posixTz, "GMT0BST,M3.5.0,M10.5.0/3", sizeof(posixTz));
+    } else if (tzHours == 2) {
+      strncpy(posixTz, "EET-2EEST,M3.5.0,M10.5.0/3", sizeof(posixTz));
+    } else {
+      int stdOffset = -tzHours;
+      snprintf(posixTz, sizeof(posixTz), "UTC%+dDST,M3.5.0,M10.5.0/3", stdOffset);
+    }
+    posixTz[sizeof(posixTz) - 1] = '\0';
+
+    configTime(0, 0, s1, s2);
+    setenv("TZ", posixTz, 1);
+    tzset();
+  } else {
+    long gmtOffset_sec = (long)tzHours * 3600;
+    setenv("TZ", "", 1);
+    tzset();
+    configTime(gmtOffset_sec, 0, s1, s2);
+  }
 
   struct tm timeinfo;
   if (getLocalTime(&timeinfo, 3000)) {
     m_uptimeSeconds = timeinfo.tm_hour * 3600 + timeinfo.tm_min * 60 + timeinfo.tm_sec;
+    m_isDst = (timeinfo.tm_isdst > 0);
     m_ntpStatus = String(langManager.getText("MSG_NTP_OK"));
     evaluateSchedule();
     return true;
