@@ -1,0 +1,442 @@
+# ==============================================================================
+# SCHEDA DISTRIBUITA A PIÙ BLOCCHI (GRIGLIA MULTI-COLONNA)
+# Copia e incolla questo codice in: "Aggiungi scheda" -> "Manuale"
+#
+# Caratteristiche:
+# - Layout reattivo a 2 colonne (si distribuisce orizzontalmente sullo schermo)
+# - Grafico 24h NATIVO (nessun errore di configurazione, funziona al 100%)
+# - Stile coordinato Ocean Dark Glassmorphism
+# ==============================================================================
+
+type: vertical-stack
+cards:
+  # ============================================================================
+  # INTESTAZIONE A LARGHEZZA INTERA CON CHIPS DI STATO
+  # ============================================================================
+  - type: custom:mod-card
+    card_mod:
+      style: |
+        ha-card {
+          background: linear-gradient(135deg, rgba(14,36,71,0.85) 0%, rgba(10,25,47,0.92) 100%) !important;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(0, 240, 255, 0.3) !important;
+          border-radius: 18px !important;
+          box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.12) !important;
+          padding: 12px;
+          margin-bottom: 6px;
+        }
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:mushroom-title-card
+          title: "🐠 Aquarium Touch"
+          subtitle: "Master Control & Ecological Telemetry"
+        - type: custom:mushroom-chips-card
+          alignment: center
+          chips:
+            # Chip Luce
+            - type: template
+              icon: mdi:lightbulb
+              icon_color: >-
+                {% set r = states('sensor.aquarium_touch_panel_light_relay') %}
+                {{ 'amber' if r == 'ON' else 'grey' }}
+              content: >-
+                {% set r = states('sensor.aquarium_touch_panel_light_relay') %}
+                Luce: {{ 'ACCESA' if r == 'ON' else 'SPENTA' }}
+              tap_action:
+                action: call-service
+                service: mqtt.publish
+                data:
+                  topic: aquarium/command/light
+                  payload: TOGGLE
+            # Chip Wi-Fi
+            - type: template
+              icon: mdi:wifi
+              icon_color: cyan
+              content: "{{ states('sensor.aquarium_touch_panel_wi_fi_ssid') | default('Wi-Fi', true) }}"
+            # Chip IP
+            - type: template
+              icon: mdi:ip-network
+              icon_color: blue
+              content: "{{ states('sensor.aquarium_touch_panel_ip_address') | default('IP N/D', true) }}"
+            # Chip MQTT
+            - type: template
+              icon: mdi:transit-connection-variant
+              icon_color: >-
+                {% set m = states('sensor.aquarium_touch_panel_mqtt_enabled') %}
+                {{ 'green' if m in ['1', 'true', 'True', 'ON'] else 'red' }}
+              content: >-
+                {% set m = states('sensor.aquarium_touch_panel_mqtt_enabled') %}
+                MQTT: {{ 'Attivo' if m in ['1', 'true', 'True', 'ON'] else 'Disattivo' }}
+            # Chip Riavvio
+            - type: template
+              icon: mdi:restart
+              icon_color: red
+              content: "Riavvia"
+              tap_action:
+                action: call-service
+                service: mqtt.publish
+                confirmation:
+                  text: "Vuoi davvero riavviare l'ESP32 Aquarium Touch?"
+                data:
+                  topic: aquarium/command/reboot
+                  payload: REBOOT
+
+  # ============================================================================
+  # GRIGLIA A BLOCCHI DISTRIBUITI (2 COLONNE REATTIVE)
+  # ============================================================================
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 1: TELEMETRIA PRINCIPALE & SENSORI
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "🌊 Parametri Acqua"
+              subtitle: "Letture in tempo reale delle sonde"
+            - type: horizontal-stack
+              cards:
+                # Temperatura
+                - type: custom:mushroom-template-card
+                  primary: "Temperatura"
+                  secondary: >-
+                    {% set t = states('sensor.aquarium_touch_panel_water_temperature') | float(0) %}
+                    {{ t | round(1) }} °C
+                  icon: mdi:thermometer-water
+                  icon_color: >-
+                    {% set t = states('sensor.aquarium_touch_panel_water_temperature') | float(0) %}
+                    {% set tmin = states('sensor.aquarium_touch_panel_temp_target_min') | float(24) %}
+                    {% set tmax = states('sensor.aquarium_touch_panel_temp_target_max') | float(27) %}
+                    {% if t < tmin %} light-blue {% elif t > tmax %} red {% else %} green {% endif %}
+                  badge_icon: >-
+                    {% set t = states('sensor.aquarium_touch_panel_water_temperature') | float(0) %}
+                    {% set tmin = states('sensor.aquarium_touch_panel_temp_target_min') | float(24) %}
+                    {% set tmax = states('sensor.aquarium_touch_panel_temp_target_max') | float(27) %}
+                    {% if t < tmin %} mdi:snowflake {% elif t > tmax %} mdi:fire {% else %} mdi:check-bold {% endif %}
+                  badge_color: >-
+                    {% set t = states('sensor.aquarium_touch_panel_water_temperature') | float(0) %}
+                    {% set tmin = states('sensor.aquarium_touch_panel_temp_target_min') | float(24) %}
+                    {% set tmax = states('sensor.aquarium_touch_panel_temp_target_max') | float(27) %}
+                    {% if t < tmin %} light-blue {% elif t > tmax %} red {% else %} green {% endif %}
+                # pH
+                - type: custom:mushroom-template-card
+                  primary: "pH Acqua"
+                  secondary: >-
+                    {% set p = states('sensor.aquarium_touch_panel_water_ph') | float(0) %}
+                    {{ p | round(2) }} pH
+                  icon: mdi:ph
+                  icon_color: >-
+                    {% set p = states('sensor.aquarium_touch_panel_water_ph') | float(0) %}
+                    {% set pmin = states('sensor.aquarium_touch_panel_ph_target_min') | float(6.5) %}
+                    {% set pmax = states('sensor.aquarium_touch_panel_ph_target_max') | float(7.5) %}
+                    {% if p < pmin or p > pmax %} red {% else %} teal {% endif %}
+                  badge_icon: >-
+                    {% set p = states('sensor.aquarium_touch_panel_water_ph') | float(0) %}
+                    {% set pmin = states('sensor.aquarium_touch_panel_ph_target_min') | float(6.5) %}
+                    {% set pmax = states('sensor.aquarium_touch_panel_ph_target_max') | float(7.5) %}
+                    {% if p < pmin or p > pmax %} mdi:alert-outline {% else %} mdi:check-bold {% endif %}
+                  badge_color: >-
+                    {% set p = states('sensor.aquarium_touch_panel_water_ph') | float(0) %}
+                    {% set pmin = states('sensor.aquarium_touch_panel_ph_target_min') | float(6.5) %}
+                    {% set pmax = states('sensor.aquarium_touch_panel_ph_target_max') | float(7.5) %}
+                    {% if p < pmin or p > pmax %} red {% else %} teal {% endif %}
+            - type: custom:mushroom-template-card
+              primary: "Sensore Luce Ambientale (LDR)"
+              secondary: "{{ states('sensor.aquarium_touch_panel_ambient_light') | default('0', true) }} lx"
+              icon: mdi:brightness-6
+              icon_color: amber
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 2: CONTROLLO LUCE & PROGRAMMATORE
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "💡 Controllo Plafoniera / Relè"
+              subtitle: "Gestione manuale e scheduler temporizzato"
+            - type: custom:mushroom-template-card
+              primary: >-
+                {% set r = states('sensor.aquarium_touch_panel_light_relay') %}
+                Stato Relè: {{ 'ACCESO (ON)' if r == 'ON' else 'SPENTO (OFF)' }}
+              secondary: >-
+                Modalità: {{ states('sensor.aquarium_touch_panel_light_mode') | default('MANUAL') }} | 
+                Polarità: {{ states('sensor.aquarium_touch_panel_relay_polarity') | default('HIGH') }}
+              icon: >-
+                {% set r = states('sensor.aquarium_touch_panel_light_relay') %}
+                {{ 'mdi:ceiling-light' if r == 'ON' else 'mdi:ceiling-light-outline' }}
+              icon_color: >-
+                {% set r = states('sensor.aquarium_touch_panel_light_relay') %}
+                {{ 'amber' if r == 'ON' else 'grey' }}
+              badge_icon: >-
+                {% set m = states('sensor.aquarium_touch_panel_light_mode') %}
+                {{ 'mdi:clock-check' if m == 'AUTO' else 'mdi:hand-back-right' }}
+              badge_color: >-
+                {% set m = states('sensor.aquarium_touch_panel_light_mode') %}
+                {{ 'blue' if m == 'AUTO' else 'orange' }}
+              tap_action:
+                action: call-service
+                service: mqtt.publish
+                data:
+                  topic: aquarium/command/light
+                  payload: TOGGLE
+            - type: horizontal-stack
+              cards:
+                - type: custom:mushroom-template-card
+                  primary: "Accendi"
+                  icon: mdi:lightbulb-on
+                  icon_color: amber
+                  tap_action:
+                    action: call-service
+                    service: mqtt.publish
+                    data:
+                      topic: aquarium/command/light
+                      payload: "ON"
+                - type: custom:mushroom-template-card
+                  primary: "Spegni"
+                  icon: mdi:lightbulb-off
+                  icon_color: grey
+                  tap_action:
+                    action: call-service
+                    service: mqtt.publish
+                    data:
+                      topic: aquarium/command/light
+                      payload: "OFF"
+                - type: custom:mushroom-template-card
+                  primary: "Inverti"
+                  icon: mdi:swap-horizontal
+                  icon_color: cyan
+                  tap_action:
+                    action: call-service
+                    service: mqtt.publish
+                    data:
+                      topic: aquarium/command/light
+                      payload: TOGGLE
+            - type: entities
+              show_header_toggle: false
+              entities:
+                - entity: sensor.aquarium_touch_panel_light_on_time
+                  name: "Orario Accensione (ON)"
+                  icon: mdi:weather-sunset-up
+                - entity: sensor.aquarium_touch_panel_light_off_time
+                  name: "Orario Spegnimento (OFF)"
+                  icon: mdi:weather-sunset-down
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 3: GRAFICO STORICO 24H (NATIVO - NESSUN ERRORE)
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "📈 Storico 24 Ore"
+              subtitle: "Andamento temperatura e pH"
+            - type: history-graph
+              hours_to_show: 24
+              entities:
+                - entity: sensor.aquarium_touch_panel_water_temperature
+                  name: "Temperatura (°C)"
+                - entity: sensor.aquarium_touch_panel_water_ph
+                  name: "pH Acqua"
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 4: SOGLIE TARGET & CALIBRAZIONE
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "🎯 Soglie Target & Calibrazione"
+              subtitle: "Limiti di sicurezza e offset sensori"
+            - type: entities
+              show_header_toggle: false
+              entities:
+                - entity: sensor.aquarium_touch_panel_temp_target_min
+                  name: "Temp. Minima Target"
+                  icon: mdi:thermometer-low
+                - entity: sensor.aquarium_touch_panel_temp_target_max
+                  name: "Temp. Massima Target"
+                  icon: mdi:thermometer-high
+                - entity: sensor.aquarium_touch_panel_temp_offset
+                  name: "Offset Temperatura"
+                  icon: mdi:tune-vertical
+                - entity: sensor.aquarium_touch_panel_ph_target_min
+                  name: "pH Minimo Target"
+                  icon: mdi:arrow-down-drop-circle-outline
+                - entity: sensor.aquarium_touch_panel_ph_target_max
+                  name: "pH Massimo Target"
+                  icon: mdi:arrow-up-drop-circle-outline
+                - entity: sensor.aquarium_touch_panel_ph_offset
+                  name: "Offset pH"
+                  icon: mdi:tune-vertical
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 5: RETE & WI-FI
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "📶 Parametri di Rete"
+              subtitle: "Connettività Wi-Fi e indirizzamento"
+            - type: entities
+              show_header_toggle: false
+              entities:
+                - entity: sensor.aquarium_touch_panel_wi_fi_ssid
+                  name: "SSID Wi-Fi"
+                  icon: mdi:wifi-check
+                - entity: sensor.aquarium_touch_panel_ip_address
+                  name: "Indirizzo IP"
+                  icon: mdi:ip
+                - entity: sensor.aquarium_touch_panel_ip_mode
+                  name: "Modalità IP"
+                  icon: mdi:network-outline
+                - entity: sensor.aquarium_touch_panel_subnet_mask
+                  name: "Subnet Mask"
+                  icon: mdi:numeric
+                - entity: sensor.aquarium_touch_panel_gateway
+                  name: "Gateway"
+                  icon: mdi:router-wireless
+                - entity: sensor.aquarium_touch_panel_dns_1
+                  name: "DNS 1"
+                  icon: mdi:dns
+                - entity: sensor.aquarium_touch_panel_dns_2
+                  name: "DNS 2"
+                  icon: mdi:dns-outline
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 6: BROKER MQTT & ALLARMI EMAIL
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "📡 MQTT & Notifiche"
+              subtitle: "Broker e server SMTP di allarme"
+            - type: entities
+              show_header_toggle: false
+              entities:
+                - entity: sensor.aquarium_touch_panel_mqtt_enabled
+                  name: "MQTT Abilitato"
+                  icon: mdi:lan-connect
+                - entity: sensor.aquarium_touch_panel_mqtt_server
+                  name: "Broker MQTT"
+                  icon: mdi:server-network
+                - entity: sensor.aquarium_touch_panel_mqtt_port
+                  name: "Porta MQTT"
+                  icon: mdi:numeric
+                - entity: sensor.aquarium_touch_panel_mqtt_user
+                  name: "Utente MQTT"
+                  icon: mdi:account-network
+                - entity: sensor.aquarium_touch_panel_email_enabled
+                  name: "Allarmi Email"
+                  icon: mdi:email-alert
+                - entity: sensor.aquarium_touch_panel_smtp_host
+                  name: "Server SMTP"
+                  icon: mdi:email-fast-outline
+                - entity: sensor.aquarium_touch_panel_smtp_recipient
+                  name: "Destinatario Allarmi"
+                  icon: mdi:email-arrow-left
+
+      # ------------------------------------------------------------------------
+      # BLOCCO 7: SISTEMA, DISPLAY & LOCALIZZAZIONE
+      # ------------------------------------------------------------------------
+      - type: custom:mod-card
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(23, 42, 69, 0.75) !important;
+              border: 1px solid rgba(46, 76, 109, 0.8) !important;
+              border-radius: 16px !important;
+              padding: 14px;
+            }
+        card:
+          type: vertical-stack
+          cards:
+            - type: custom:mushroom-title-card
+              title: "⚙️ Sistema & Display CYD"
+              subtitle: "Preferenze hardware e formati"
+            - type: entities
+              show_header_toggle: false
+              entities:
+                - entity: sensor.aquarium_touch_panel_language
+                  name: "Lingua di Sistema"
+                  icon: mdi:translate
+                - entity: sensor.aquarium_touch_panel_screensaver_time
+                  name: "Timeout Salvaschermo"
+                  icon: mdi:clock-start
+                - entity: sensor.aquarium_touch_panel_screen_rotation
+                  name: "Orientamento Schermo"
+                  icon: mdi:screen-rotation
+                - entity: sensor.aquarium_touch_panel_timezone
+                  name: "Fuso Orario"
+                  icon: mdi:map-clock
+                - entity: sensor.aquarium_touch_panel_hour_format
+                  name: "Formato Orario"
+                  icon: mdi:clock-digital
+                - entity: sensor.aquarium_touch_panel_date_format
+                  name: "Formato Data"
+                  icon: mdi:calendar-range
+                - entity: sensor.aquarium_touch_panel_debug_serial
+                  name: "Debug Seriale"
+                  icon: mdi:bug-outline

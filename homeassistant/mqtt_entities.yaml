@@ -1,0 +1,28 @@
+# ==============================================================================
+# CONFIGURAZIONE MQTT PER HOME ASSISTANT
+# Aggiungi questo blocco nel tuo configuration.yaml (sotto 'mqtt:') oppure
+# in mqtt.yaml se hai la configurazione splittata.
+# ==============================================================================
+
+mqtt:
+  # Interruttore per accendere/spegnere la luce dell'acquario
+  switch:
+    - name: "Aquarium Light"
+      unique_id: aquarium_light_switch
+      state_topic: "aquarium/data"
+      value_template: "{{ value_json.lightOn }}"
+      command_topic: "aquarium/command/light"
+      payload_on: "ON"
+      payload_off: "OFF"
+      state_on: "ON"
+      state_off: "OFF"
+      icon: mdi:fishbowl-outline
+
+  # Pulsante per riavviare l'ESP32 Aquarium Touch
+  button:
+    - name: "Aquarium Reboot"
+      unique_id: aquarium_reboot_button
+      command_topic: "aquarium/command/reboot"
+      payload_press: "REBOOT"
+      icon: mdi:restart
+      device_class: restart
