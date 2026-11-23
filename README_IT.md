@@ -334,7 +334,6 @@ Se il Wi-Fi non è configurato o preferisci l'aggiornamento classico via cavo:
 
 Il progetto è in continua evoluzione. Le prossime funzionalità e integrazioni hardware in programma includono:
 
-- **Sensore pH:** Monitoraggio in tempo reale dell'acidità dell'acqua.
 - **Sensore Livello Acqua:** Rilevamento del livello di evaporazione o livello critico con avvisi a schermo/web.
 - **Attivatore Mangiatoia Automatica:** Integrazione con la programmazione (Schedule) per erogazione cibo agli orari prestabiliti.
 - **Gravity: Analog TDS Sensor Meter (Arduino):** Misurazione dei Solidi Totali Disciolti (TDS) in *ppm* (parti per milione), perfetto per monitorare in modo granulare la concentrazione di fertilizzanti in colonna d'acqua e la purezza generale.

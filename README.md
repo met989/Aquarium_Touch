@@ -334,7 +334,6 @@ If Wi-Fi is not configured or you prefer a traditional cable update:
 
 The project is actively developed. Upcoming features and hardware integrations include:
 
-- **pH Sensor:** Real-time water acidity monitoring.
 - **Water Level Sensor:** Evaporation and critical level alerts on-screen and via web.
 - **Automatic Feeder Actuator:** Schedule integration for timed feedings.
 - **Gravity: Analog TDS Sensor Meter (Arduino):** Total Dissolved Solids (TDS) measurement in *ppm*, ideal for tracking fertilizer concentrations and overall water purity.
